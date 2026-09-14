@@ -206,20 +206,20 @@
 <body>
 
 <!-- LOGIN -->
-<div id="loginScreen">
+<div id="loginScreen" style="display:none">
   <div class="login-box">
     <div class="login-logo">דפוס שלוש</div>
-    <div class="login-sub">יומן עבודה – בחר משתמש</div>
-    <div class="user-btns">
-      <button class="user-btn" onclick="loginDirect('יערית')">👩 יערית</button>
-      <button class="user-btn" onclick="showPin('הילה')">👩‍💼 הילה</button>
-      <button class="user-btn" onclick="showPin('יניב')">👨‍💼 יניב</button>
+    <div class="login-sub">יומן עבודה</div>
+    <div class="form-group" style="margin-bottom:12px;text-align:right">
+      <label style="font-size:12px;color:var(--text2);font-weight:500">אימייל</label>
+      <input type="email" id="loginEmail" placeholder="your@email.com" style="width:100%;margin-top:6px;padding:11px;border-radius:var(--radius-sm);border:1px solid var(--border);background:var(--surface2);color:var(--text);font-family:'Rubik',sans-serif;font-size:14px" onkeydown="if(event.key==='Enter')doLogin()">
     </div>
-    <div class="pin-section" id="pinSection">
-      <input type="password" id="pinInput" placeholder="סיסמה" maxlength="20" onkeydown="if(event.key==='Enter')checkPin()">
-      <button class="btn btn-primary" onclick="checkPin()" style="width:100%;justify-content:center">כניסה</button>
-      <div class="login-err" id="pinErr">סיסמה שגויה</div>
+    <div class="form-group" style="margin-bottom:20px;text-align:right">
+      <label style="font-size:12px;color:var(--text2);font-weight:500">סיסמה</label>
+      <input type="password" id="loginPassword" placeholder="••••••••" style="width:100%;margin-top:6px;padding:11px;border-radius:var(--radius-sm);border:1px solid var(--border);background:var(--surface2);color:var(--text);font-family:'Rubik',sans-serif;font-size:14px" onkeydown="if(event.key==='Enter')doLogin()">
     </div>
+    <button class="btn btn-primary" onclick="doLogin()" style="width:100%;justify-content:center;padding:12px;font-size:15px">כניסה</button>
+    <div class="login-err" id="loginErr" style="margin-top:10px">אימייל או סיסמה שגויים</div>
   </div>
 </div>
 
@@ -373,9 +373,8 @@
         <button class="btn btn-primary btn-sm" style="margin-top:6px" onclick="saveWaMsg()">שמור הודעה</button>
       </div>
       <div class="settings-section">
-        <h3>שינוי סיסמת מנהלים</h3>
-        <div class="form-group"><label>סיסמה נוכחית</label><input type="password" id="s_oldPass"></div>
-        <div class="form-group"><label>סיסמה חדשה</label><input type="password" id="s_newPass"></div>
+        <h3>שינוי סיסמה אישית</h3>
+        <div class="form-group"><label>סיסמה חדשה</label><input type="password" id="s_newPass" placeholder="לפחות 6 תווים"></div>
         <button class="btn btn-primary btn-sm" style="margin-top:8px" onclick="changePassword()">עדכן סיסמה</button>
       </div>
       <div class="settings-section">
@@ -408,37 +407,90 @@
 <div id="toast"></div>
 
 <script>
-const USERS={יערית:{role:'employee'},הילה:{role:'admin'},יניב:{role:'admin'}};
+const USERS={
+  'yaarit@dafus.co': {name:'יערית', role:'employee'},
+  'hila@dafus.co':   {name:'הילה',  role:'admin'},
+  'yaniv@dafus.co':  {name:'יניב',  role:'admin'},
+};
 const ALL_USERS=['יערית','הילה','יניב'];
-const ADMIN_PASS_KEY='worklog_admin_pass';
 const WA_MSG_KEY='worklog_wa_msg';
-let adminPass=localStorage.getItem(ADMIN_PASS_KEY)||'1234';
 let waMsg=localStorage.getItem(WA_MSG_KEY)||'שלום {שם}, העבודה שלך מוכנה לאיסוף!\nדפוס שלוש 🖨️';
-let currentUser=null,pendingPinUser=null;
-let adminView='all'; // 'all' | 'mine'
+let currentUser=null; // שם תצוגה
+let currentEmail=null;
+let adminView='all';
 
-function loginDirect(n){currentUser=n;finishLogin();}
-function showPin(n){
-  pendingPinUser=n;
-  document.getElementById('pinSection').style.display='block';
-  document.getElementById('pinInput').value='';
-  document.getElementById('pinErr').style.display='none';
-  document.getElementById('pinInput').focus();
+// בדוק אם יש session שמור
+async function checkSession(){
+  try{
+    const r=await fetch(`${SUPA_URL}/auth/v1/user`,{headers:SUPA_HEADERS});
+    if(r.ok){
+      const d=await r.json();
+      if(d.email&&USERS[d.email]){
+        currentEmail=d.email;
+        currentUser=USERS[d.email].name;
+        finishLogin();
+        return;
+      }
+    }
+  }catch(e){}
+  // אין session – הצג מסך כניסה
+  document.getElementById('loginScreen').style.display='flex';
 }
-function checkPin(){
-  if(document.getElementById('pinInput').value===adminPass){currentUser=pendingPinUser;finishLogin();}
-  else{document.getElementById('pinErr').style.display='block';document.getElementById('pinInput').value='';}
+
+async function doLogin(){
+  const email=document.getElementById('loginEmail').value.trim();
+  const pass=document.getElementById('loginPassword').value;
+  const err=document.getElementById('loginErr');
+  err.style.display='none';
+  if(!email||!pass){err.style.display='block';err.textContent='נא למלא אימייל וסיסמה';return;}
+  try{
+    const r=await fetch(`${SUPA_URL}/auth/v1/token?grant_type=password`,{
+      method:'POST',
+      headers:{...SUPA_HEADERS,'Content-Type':'application/json'},
+      body:JSON.stringify({email,password:pass})
+    });
+    const d=await r.json();
+    if(d.access_token){
+      // שמור token
+      localStorage.setItem('supa_token',d.access_token);
+      localStorage.setItem('supa_refresh',d.refresh_token||'');
+      // עדכן headers עם token אישי
+      SUPA_HEADERS['Authorization']=`Bearer ${d.access_token}`;
+      if(!USERS[email]){err.style.display='block';err.textContent='משתמש לא מורשה';return;}
+      currentEmail=email;
+      currentUser=USERS[email].name;
+      finishLogin();
+    } else {
+      err.style.display='block';
+      err.textContent='אימייל או סיסמה שגויים';
+    }
+  }catch(e){err.style.display='block';err.textContent='שגיאת חיבור';}
 }
+
 function finishLogin(){
   document.getElementById('loginScreen').style.display='none';
   document.getElementById('currentUserBadge').textContent='👤 '+currentUser;
-  document.getElementById('settingsBtn').style.display=USERS[currentUser]?.role==='admin'?'flex':'none';
-  document.getElementById('adminTabs').style.display=USERS[currentUser]?.role==='admin'?'flex':'none';
-  loadLocal();      // טען מ-cache מיידית
-  loadFromDB();     // טען מסופהבייס
-  initRealtime();   // הפעל עדכונים בזמן אמת
+  const isAdmin=USERS[currentEmail]?.role==='admin';
+  document.getElementById('settingsBtn').style.display=isAdmin?'flex':'none';
+  document.getElementById('adminTabs').style.display=isAdmin?'flex':'none';
+  loadLocal();
+  loadFromDB();
+  initRealtime();
 }
-function logout(){currentUser=null;document.getElementById('loginScreen').style.display='flex';document.getElementById('pinSection').style.display='none';}
+
+async function logout(){
+  try{
+    await fetch(`${SUPA_URL}/auth/v1/logout`,{method:'POST',headers:SUPA_HEADERS});
+  }catch(e){}
+  localStorage.removeItem('supa_token');
+  localStorage.removeItem('supa_refresh');
+  SUPA_HEADERS['Authorization']=`Bearer ${SUPA_KEY}`;
+  currentUser=null;currentEmail=null;
+  document.getElementById('loginScreen').style.display='flex';
+  document.getElementById('loginEmail').value='';
+  document.getElementById('loginPassword').value='';
+}
+
 
 function setAdminView(v){
   adminView=v;
@@ -464,9 +516,16 @@ let editingId=null;
 let currentStatus='ordered';
 let activeSection=null;
 
+// ── SUPABASE ──────────────────────────────────────────
 const SUPA_URL='https://ykapheijbiiyxvxzyzjr.supabase.co';
 const SUPA_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlrYXBoZWlqYmlpeXh2eHp5empyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk0MDY2MzIsImV4cCI6MjEwNDk4MjYzMn0.PGCD4pq4RQQCOGGDMhw1feHCB736usnq3XpTEAgXMbM';
-const SUPA_HEADERS={'Content-Type':'application/json','apikey':SUPA_KEY,'Authorization':`Bearer ${SUPA_KEY}`};
+// השתמש ב-token אישי אם יש
+const savedToken=localStorage.getItem('supa_token');
+const SUPA_HEADERS={
+  'Content-Type':'application/json',
+  'apikey':SUPA_KEY,
+  'Authorization':`Bearer ${savedToken||SUPA_KEY}`
+};
 
 const STATUSES={
   ordered:    {label:'הוזמן',  color:'var(--s-ordered)',    badge:'badge-ordered'},
@@ -590,7 +649,7 @@ function getFiltered(){
 // ── RENDER ────────────────────────────────────────────
 function renderAll(){
   if(!currentUser)return;
-  const isAdmin=USERS[currentUser]?.role==='admin';
+  const isAdmin=USERS[currentEmail]?.role==='admin';
   renderStats();
   if(isAdmin) renderAdminView();
   else renderEmployeeView();
@@ -599,7 +658,7 @@ function renderAll(){
 function renderStats(){
   const counts={};
   STATUS_ORDER.forEach(s=>counts[s]=0);
-  const isAdmin=USERS[currentUser]?.role==='admin';
+  const isAdmin=USERS[currentEmail]?.role==='admin';
   const relevant = isAdmin
     ? (adminView==='mine' ? orders.filter(o=>o.assignee===currentUser) : orders)
     : orders.filter(o=>o.assignee===currentUser);
@@ -686,7 +745,7 @@ function renderStatusSectionsHTML(items,mode){
 }
 
 function cardHTML(o, showClaimBtn=false){
-  const isAdmin=USERS[currentUser]?.role==='admin';
+  const isAdmin=USERS[currentEmail]?.role==='admin';
   const idx=STATUS_ORDER.indexOf(o.status);
   const prevS=idx>0?STATUS_ORDER[idx-1]:null;
   const nextS=idx<STATUS_ORDER.length-1?STATUS_ORDER[idx+1]:null;
@@ -868,7 +927,7 @@ function openNewModal(){
   document.getElementById('deleteBtn').style.display='none';
   document.getElementById('waBtn').style.display='none';
   document.getElementById('waSentBadge').style.display='none';
-  const isAdmin=USERS[currentUser]?.role==='admin';
+  const isAdmin=USERS[currentEmail]?.role==='admin';
   document.getElementById('adminAssignRow').style.display=isAdmin?'block':'none';
   selectStatus('ordered');
   document.getElementById('orderModal').classList.add('open');
@@ -890,7 +949,7 @@ function openEdit(id){
   document.getElementById('f_inReview').checked=!!o.inReview;
   document.getElementById('f_approved').checked=!!o.approved;
   document.getElementById('graphicSubsteps').style.display=(o.type==='גרפיקה'||o.status==='graphic')?'block':'none';
-  const isAdmin=USERS[currentUser]?.role==='admin';
+  const isAdmin=USERS[currentEmail]?.role==='admin';
   document.getElementById('deleteBtn').style.display=isAdmin?'inline-flex':'none';
   document.getElementById('adminAssignRow').style.display=isAdmin?'block':'none';
   document.getElementById('waBtn').style.display=(o.status==='ready'&&o.phone)?'flex':'none';
@@ -992,14 +1051,18 @@ function openSettings(){
   document.getElementById('settingsModal').classList.add('open');
 }
 function saveWaMsg(){waMsg=document.getElementById('s_waMsg').value||waMsg;localStorage.setItem(WA_MSG_KEY,waMsg);showToast('✓ הודעה נשמרה');}
-function changePassword(){
-  const old=document.getElementById('s_oldPass').value;
+async function changePassword(){
   const nw=document.getElementById('s_newPass').value;
-  if(old!==adminPass){showToast('⚠️ הסיסמה הנוכחית שגויה');return;}
-  if(nw.length<4){showToast('⚠️ סיסמה חייבת לפחות 4 תווים');return;}
-  adminPass=nw;localStorage.setItem(ADMIN_PASS_KEY,nw);
-  showToast('✓ הסיסמה עודכנה');
-  document.getElementById('settingsModal').classList.remove('open');
+  if(nw.length<6){showToast('⚠️ סיסמה חייבת לפחות 6 תווים');return;}
+  try{
+    const r=await fetch(`${SUPA_URL}/auth/v1/user`,{
+      method:'PUT',
+      headers:SUPA_HEADERS,
+      body:JSON.stringify({password:nw})
+    });
+    if(r.ok){showToast('✓ הסיסמה עודכנה');document.getElementById('settingsModal').classList.remove('open');}
+    else showToast('⚠️ שגיאה בעדכון סיסמה');
+  }catch(e){showToast('⚠️ שגיאת חיבור');}
 }
 function clearAll(){
   if(!confirm('למחוק את כל הנתונים?'))return;
@@ -1030,6 +1093,9 @@ document.querySelectorAll('.overlay').forEach(el=>{
   el.addEventListener('click',e=>{if(e.target===el)el.classList.remove('open');});
 });
 document.addEventListener('click',()=>closeAssigneeMenus());
+
+// בדוק session בטעינה
+checkSession();
 </script>
 </body>
 </html>
