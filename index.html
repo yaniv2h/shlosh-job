@@ -488,6 +488,8 @@ function finishLogin(){
   loadLocal();
   loadFromDB();
   initRealtime();
+  // Polling גיבוי – כל 15 שניות
+  setInterval(loadFromDB, 15000);
 }
 
 async function logout(){
@@ -622,31 +624,35 @@ async function deleteOrderFromDB(id){
 
 // Realtime – עדכונים בזמן אמת
 function initRealtime(){
+  const token=localStorage.getItem('supa_token')||SUPA_KEY;
   const ws=new WebSocket(`wss://ykapheijbiiyxvxzyzjr.supabase.co/realtime/v1/websocket?apikey=${SUPA_KEY}&vsn=1.0.0`);
   let heartbeat;
 
   ws.onopen=()=>{
-    // Join channel
     ws.send(JSON.stringify({
       topic:'realtime:public:orders',
       event:'phx_join',
-      payload:{config:{broadcast:{self:false},presence:{key:''},postgres_changes:[
-        {event:'*',schema:'public',table:'orders'}
-      ]}},
+      payload:{
+        config:{
+          broadcast:{self:false},
+          postgres_changes:[{event:'*',schema:'public',table:'orders'}]
+        },
+        access_token:token
+      },
       ref:'1'
     }));
-    // Heartbeat כל 30 שניות
     heartbeat=setInterval(()=>{
       ws.send(JSON.stringify({topic:'phoenix',event:'heartbeat',payload:{},ref:'hb'}));
-    },30000);
+    },20000);
   };
 
   ws.onmessage=(e)=>{
     try{
       const msg=JSON.parse(e.data);
-      // עדכון נתונים כשיש שינוי בטבלה
-      if(msg.event==='postgres_changes'||
-         (msg.payload?.data?.type&&['INSERT','UPDATE','DELETE'].includes(msg.payload.data.type))){
+      const evt=msg.event;
+      // phx_reply = אישור join, postgres_changes = שינוי בטבלה
+      if(evt==='postgres_changes'||
+        (msg.payload?.data?.type&&['INSERT','UPDATE','DELETE'].includes(msg.payload.data.type))){
         loadFromDB();
       }
     }catch(e){}
@@ -655,7 +661,7 @@ function initRealtime(){
   ws.onerror=()=>{};
   ws.onclose=()=>{
     clearInterval(heartbeat);
-    setTimeout(initRealtime,3000); // חיבור מחדש אוטומטי
+    setTimeout(initRealtime,4000);
   };
 }
 
