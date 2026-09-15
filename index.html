@@ -724,8 +724,12 @@ function renderAdminView(){
 // עובד – הזמנות שלי + לא משויכות
 function renderEmployeeView(){
   const filtered=getFiltered();
-  const mine=filtered.filter(o=>o.assignee===currentUser);
-  const unassigned=filtered.filter(o=>!o.assignee&&o.status!=='delivered');
+  const mine=filtered.filter(o=>
+    o.assignee===currentUser || (o.items||[]).some(i=>i.assignee===currentUser)
+  );
+  const unassigned=filtered.filter(o=>
+    !o.assignee && !(o.items||[]).some(i=>i.assignee) && o.status!=='delivered'
+  );
   let html='';
 
   // כפתורי מעבר תצוגה לעובדת
@@ -826,6 +830,7 @@ function cardHTML(o, showClaimBtn=false){
       <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
         <span style="font-size:13px;font-weight:700">${esc(item.type)||'?'}</span>
         ${item.qty?`<span style="font-size:12px;color:var(--text2)">× ${esc(item.qty)}</span>`:''}
+        ${item.assignee?`<span style="font-size:11px;padding:2px 8px;border-radius:10px;background:rgba(168,85,247,0.12);color:var(--s-graphic);font-weight:600">👤 ${esc(item.assignee)}</span>`:''}
         <span style="font-size:11px;padding:2px 8px;border-radius:10px;background:rgba(0,0,0,0.06);color:${sc};font-weight:600;border:1px solid ${sc}">${STATUSES[item.status]?.label||item.status}</span>
         <div style="display:flex;gap:4px;margin-right:auto">
           ${prevS?`<button onclick="event.stopPropagation();moveItem('${o.id}',${i},'${prevS}')" style="padding:2px 8px;border:1px solid var(--border);border-radius:6px;background:none;color:var(--text2);cursor:pointer;font-size:11px;font-family:'Rubik',sans-serif">← ${STATUSES[prevS].label}</button>`:''}
@@ -999,6 +1004,10 @@ function renderItemsList(){
         ${formItems.length>1?`<button onclick="removeItem(${i})" style="border:none;background:none;color:var(--danger);cursor:pointer;font-size:16px;padding:4px">✕</button>`:''}
       </div>
       <textarea onchange="formItems[${i}].notes=this.value" placeholder="הערות לעבודה זו..." style="width:100%;margin-top:6px;background:var(--surface);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:7px 10px;font-family:'Rubik',sans-serif;font-size:13px;resize:none;height:52px;direction:rtl">${esc(item.notes||'')}</textarea>
+      <select onchange="formItems[${i}].assignee=this.value" style="width:100%;margin-top:6px;background:var(--surface);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:7px 10px;font-family:'Rubik',sans-serif;font-size:13px">
+        <option value="">👤 מבצע – לא משויך</option>
+        ${ALL_USERS.map(u=>`<option value="${u}"${item.assignee===u?' selected':''}>${u==='יערית'?'👩':u==='הילה'?'👩‍💼':'👨‍💼'} ${u}</option>`).join('')}
+      </select>
       <div style="display:flex;gap:6px;flex-wrap:wrap">
         ${STATUS_ORDER.map(s=>`
           <button onclick="formItems[${i}].status='${s}';renderItemsList()" style="padding:4px 10px;border-radius:6px;border:1px solid ${item.status===s?STATUSES[s].color:'var(--border)'};background:${item.status===s?'rgba(0,0,0,0.06)':'none'};color:${item.status===s?STATUSES[s].color:'var(--text2)'};font-family:'Rubik',sans-serif;font-size:12px;font-weight:${item.status===s?'700':'400'};cursor:pointer">
@@ -1009,7 +1018,7 @@ function renderItemsList(){
 }
 
 function addItem(){
-  formItems.push({id:`item_${Date.now()}`,type:'',qty:'',status:'ordered',inReview:false,approved:false,prodSteps:{},prodNote:'',statusDates:{ordered:new Date().toISOString()}});
+  formItems.push({id:`item_${Date.now()}`,type:'',qty:'',status:'ordered',assignee:'',notes:'',inReview:false,approved:false,prodSteps:{},prodNote:'',statusDates:{ordered:new Date().toISOString()}});
   renderItemsList();
 }
 
@@ -1036,7 +1045,7 @@ function openNewModal(){
   document.getElementById('deleteBtn').style.display='none';
   document.getElementById('waBtn').style.display='none';
   document.getElementById('waSentBadge').style.display='none';
-  formItems=[{id:`item_${Date.now()}`,type:'',qty:'',status:'ordered',inReview:false,approved:false,prodSteps:{},prodNote:'',statusDates:{ordered:new Date().toISOString()}}];
+  formItems=[{id:`item_${Date.now()}`,type:'',qty:'',status:'ordered',assignee:'',notes:'',inReview:false,approved:false,prodSteps:{},prodNote:'',statusDates:{ordered:new Date().toISOString()}}];
   renderItemsList();
   document.getElementById('orderModal').classList.add('open');
   setTimeout(()=>document.getElementById('f_customer').focus(),100);
