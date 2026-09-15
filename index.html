@@ -832,6 +832,7 @@ function cardHTML(o, showClaimBtn=false){
           ${nextS?`<button onclick="event.stopPropagation();moveItem('${o.id}',${i},'${nextS}')" style="padding:2px 8px;border:none;border-radius:6px;background:${STATUSES[nextS].color};color:#fff;cursor:pointer;font-size:11px;font-family:'Rubik',sans-serif">${STATUSES[nextS].label} →</button>`:''}
         </div>
       </div>
+      ${item.notes?`<div style="font-size:12px;color:var(--text2);margin-top:6px;padding:5px 8px;background:var(--surface);border-radius:6px">${esc(item.notes)}</div>`:''}
       ${graphicHTML}${stepsHTML}
     </div>`;
   }).join('');
@@ -997,6 +998,7 @@ function renderItemsList(){
         <input type="text" value="${esc(item.qty||'')}" onchange="formItems[${i}].qty=this.value" placeholder="כמות" style="flex:1;background:var(--surface);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:7px 10px;font-family:'Rubik',sans-serif;font-size:13px">
         ${formItems.length>1?`<button onclick="removeItem(${i})" style="border:none;background:none;color:var(--danger);cursor:pointer;font-size:16px;padding:4px">✕</button>`:''}
       </div>
+      <textarea onchange="formItems[${i}].notes=this.value" placeholder="הערות לעבודה זו..." style="width:100%;margin-top:6px;background:var(--surface);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:7px 10px;font-family:'Rubik',sans-serif;font-size:13px;resize:none;height:52px;direction:rtl">${esc(item.notes||'')}</textarea>
       <div style="display:flex;gap:6px;flex-wrap:wrap">
         ${STATUS_ORDER.map(s=>`
           <button onclick="formItems[${i}].status='${s}';renderItemsList()" style="padding:4px 10px;border-radius:6px;border:1px solid ${item.status===s?STATUSES[s].color:'var(--border)'};background:${item.status===s?'rgba(0,0,0,0.06)':'none'};color:${item.status===s?STATUSES[s].color:'var(--text2)'};font-family:'Rubik',sans-serif;font-size:12px;font-weight:${item.status===s?'700':'400'};cursor:pointer">
