@@ -791,16 +791,19 @@ function renderStatusSectionsHTML(items,mode){
 function cardHTML(o, showClaimBtn=false){
   const paidBadge=`<div class="paid-badge" style="${o.paid?'background:rgba(16,185,129,0.2);color:var(--s-delivered);border:1px solid rgba(16,185,129,0.4)':'background:rgba(239,68,68,0.15);color:var(--danger);border:1px solid rgba(239,68,68,0.3)'}" onclick="event.stopPropagation();togglePaid('${o.id}')">${o.paid?'✓ שולם':'✗ לא שולם'}</div>`;
 
+  const multiItems=(o.items||[]).length>1;
+
+  // שיוך להזמנה כולה – רק כשיש פריט אחד
   const menuItems=ALL_USERS.map(u=>
     `<div class="assignee-menu-item${o.assignee===u?' active':''}" onclick="event.stopPropagation();setAssignee('${o.id}','${u}');closeAssigneeMenus()">${u==='יערית'?'👩':u==='הילה'?'👩‍💼':'👨‍💼'} ${u}</div>`
   ).join('')+`<div class="assignee-menu-item unassign" onclick="event.stopPropagation();setAssignee('${o.id}','');closeAssigneeMenus()">✕ הסר שיוך</div>`;
 
-  const assigneeDropdown=`<div class="assignee-wrap" onclick="event.stopPropagation()">
+  const assigneeDropdown=!multiItems?`<div class="assignee-wrap" onclick="event.stopPropagation()">
     <div class="assignee-pill ${o.assignee?'assigned':'unassigned'}" onclick="toggleAssigneeMenu('menu-${o.id}')">
       👤 ${o.assignee||'לא משויך'} ▾
     </div>
     <div class="assignee-menu" id="menu-${o.id}">${menuItems}</div>
-  </div>`;
+  </div>`:'';
 
   // פריטים
   const itemsHTML=(o.items||[]).map((item,i)=>{
@@ -832,7 +835,15 @@ function cardHTML(o, showClaimBtn=false){
         ${item.qty?`<span style="font-size:12px;color:var(--text2)">× ${esc(item.qty)}</span>`:''}
         ${item.assignee?`<span style="font-size:11px;padding:2px 8px;border-radius:10px;background:rgba(168,85,247,0.12);color:var(--s-graphic);font-weight:600">👤 ${esc(item.assignee)}</span>`:''}
         <span style="font-size:11px;padding:2px 8px;border-radius:10px;background:rgba(0,0,0,0.06);color:${sc};font-weight:600;border:1px solid ${sc}">${STATUSES[item.status]?.label||item.status}</span>
-        <div style="display:flex;gap:4px;margin-right:auto">
+        ${multiItems?`<div class="assignee-wrap" onclick="event.stopPropagation()" style="margin-right:auto">
+          <div class="assignee-pill ${item.assignee?'assigned':'unassigned'}" style="font-size:11px;padding:2px 8px" onclick="toggleAssigneeMenu('menu-${o.id}-${i}')">
+            👤 ${item.assignee||'שייך'} ▾
+          </div>
+          <div class="assignee-menu" id="menu-${o.id}-${i}">
+            ${ALL_USERS.map(u=>`<div class="assignee-menu-item${item.assignee===u?' active':''}" onclick="event.stopPropagation();setItemAssignee('${o.id}',${i},'${u}');closeAssigneeMenus()">${u==='יערית'?'👩':u==='הילה'?'👩‍💼':'👨‍💼'} ${u}</div>`).join('')}
+            <div class="assignee-menu-item unassign" onclick="event.stopPropagation();setItemAssignee('${o.id}',${i},'');closeAssigneeMenus()">✕ הסר</div>
+          </div>
+        </div>`:`<div style="margin-right:auto"></div>`}
           ${prevS?`<button onclick="event.stopPropagation();moveItem('${o.id}',${i},'${prevS}')" style="padding:2px 8px;border:1px solid var(--border);border-radius:6px;background:none;color:var(--text2);cursor:pointer;font-size:11px;font-family:'Rubik',sans-serif">← ${STATUSES[prevS].label}</button>`:''}
           ${nextS?`<button onclick="event.stopPropagation();moveItem('${o.id}',${i},'${nextS}')" style="padding:2px 8px;border:none;border-radius:6px;background:${STATUSES[nextS].color};color:#fff;cursor:pointer;font-size:11px;font-family:'Rubik',sans-serif">${STATUSES[nextS].label} →</button>`:''}
         </div>
@@ -899,6 +910,15 @@ function saveItemProdNote(orderId,itemIdx,text){
   const o=orders.find(x=>x.id===orderId);if(!o||!o.items[itemIdx])return;
   o.items[itemIdx].prodNote=text.trim();
   saveLocal();saveOrderToDB(o);
+}
+
+function setItemAssignee(orderId,itemIdx,user){
+  const o=orders.find(x=>x.id===orderId);if(!o||!o.items[itemIdx])return;
+  o.items[itemIdx].assignee=user||null;
+  o.updatedAt=new Date().toISOString();
+  addLog(o,`שייך "${o.items[itemIdx].type}" ל${user||'לא משויך'}`);
+  saveLocal();saveOrderToDB(o);renderAll();
+  showToast(user?`✓ שויך ל${user}`:'✓ הוסר השיוך');
 }
 
 function toggleAssigneeMenu(menuId){
