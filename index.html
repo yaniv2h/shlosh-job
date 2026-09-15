@@ -980,7 +980,7 @@ function sendWhatsAppDirect(phone,customer){
   const clean=phone.replace(/\D/g,'');
   const intl=clean.startsWith('0')?'972'+clean.slice(1):clean;
   const text=waMsg.replace(/{שם}/g,customer);
-  window.open(`https://wa.me/${intl}?text=${encodeURIComponent(text)}`,'_blank');
+  window.open(`https://web.whatsapp.com/send?phone=${intl}&text=${encodeURIComponent(text)}`,'_blank');
 }
 
 // ── MODAL ─────────────────────────────────────────────
