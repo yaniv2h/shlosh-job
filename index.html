@@ -834,7 +834,7 @@ function cardHTML(o, showClaimBtn=false){
     const nextS=si<STATUS_ORDER.length-1?STATUS_ORDER[si+1]:null;
     const sc=STATUSES[item.status]?.color||'var(--text2)';
 
-    return `<div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px;margin-top:8px">
+    return `<div style="background:var(--surface2);border:1px solid var(--border);border-right:3px solid ${sc};border-radius:8px;padding:10px">
       <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
         <span style="font-size:13px;font-weight:700">${esc(item.type)||'?'}</span>
         ${item.qty?`<span style="font-size:12px;color:var(--text2)">× ${esc(item.qty)}</span>`:''}
@@ -873,16 +873,22 @@ function cardHTML(o, showClaimBtn=false){
         📲 שלח הודעת וואטסאפ${o.waSentAt?` <span style="font-size:10px;opacity:0.85">(נשלח ${formatDateTime(o.waSentAt)})</span>`:''}
       </button>`:'';
 
-  return `<div class="card" onclick="openEdit('${o.id}')" style="${o.urgent?'border:2px solid var(--danger);background:rgba(212,58,58,0.06)':''}">
-    <div class="card-top">
-      <div class="card-customer">${o.urgent?'🚨 ':''}${esc(o.customer)}</div>
-      <div class="card-badges">${paidBadge}</div>
+  return `<div class="card" onclick="openEdit('${o.id}')" style="border:2px solid ${o.urgent?'var(--danger)':'var(--border)'};${o.urgent?'background:rgba(212,58,58,0.04)':'background:var(--surface)'}">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px">
+      <div>
+        <div style="font-size:17px;font-weight:700">${o.urgent?'🚨 ':''}${esc(o.customer)}</div>
+        ${o.orderNum?`<div style="font-size:12px;color:var(--text2);margin-top:2px">${esc(o.orderNum)}</div>`:''}
+        ${o.phone?`<div style="font-size:13px;margin-top:2px"><a href="tel:${esc(o.phone)}" onclick="event.stopPropagation()" style="color:var(--accent);text-decoration:none">📞 ${esc(o.phone)}</a></div>`:''}
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">
+        ${paidBadge}
+        ${assigneeDropdown}
+      </div>
     </div>
-    ${assigneeDropdown}
-    ${o.orderNum?`<div class="card-meta">${esc(o.orderNum)}</div>`:''}
-    ${o.phone?`<div class="card-meta"><a href="tel:${esc(o.phone)}" onclick="event.stopPropagation()" style="color:var(--accent);text-decoration:none">📞 ${esc(o.phone)}</a></div>`:''}
-    ${o.notes?`<div class="card-notes">${esc(o.notes)}</div>`:''}
-    ${itemsHTML}
+    ${o.notes?`<div style="font-size:13px;color:var(--text2);margin-bottom:10px;padding:6px 10px;background:var(--surface2);border-radius:6px;border-right:3px solid var(--accent)">${esc(o.notes)}</div>`:''}
+    <div style="display:flex;flex-direction:column;gap:8px;border-top:1px solid var(--border);padding-top:10px;margin-top:2px">
+      ${itemsHTML}
+    </div>
     ${waBtn}
   </div>`;
 }
