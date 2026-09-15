@@ -779,7 +779,7 @@ function renderStatusSectionsHTML(items,mode){
     const info=STATUSES[status];
     const group=items.filter(o=>orderStatus(o)===status).sort((a,b)=>(b.urgent?1:0)-(a.urgent?1:0));
     if(!activeSection&&group.length===0)continue;
-    const cols=group.length<=1?1:group.length===2?2:3;
+    const cols=1;
     html+=`<div style="margin-bottom:24px">
       <div class="section-label">
         <span class="section-dot" style="background:${info.color}"></span>${info.label}
