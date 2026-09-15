@@ -7,12 +7,13 @@
 <link href="https://fonts.googleapis.com/css2?family=Rubik:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
   :root{
-    --bg:#0a0a0f;--surface:#13131f;--surface2:#1c1c2e;--border:#2a2a45;
-    --accent:#c9a84c;--accent2:#e8c96a;--text:#f0ede8;--text2:#8a8799;
-    --s-ordered:#e8a030;--s-graphic:#9b6fd4;--s-production:#4a8fd4;
-    --s-ready:#6a4fc4;--s-delivered:#3dba8c;--s-review:#d45fa0;
-    --danger:#d44a4a;--radius:12px;--radius-sm:8px;
+    --bg:#f4f5f8;--surface:#ffffff;--surface2:#f0f1f5;--border:#dde0ec;
+    --accent:#c9a84c;--accent2:#e8c96a;--text:#1a1a2e;--text2:#6b6f8a;
+    --s-ordered:#e8900a;--s-graphic:#9b6fd4;--s-production:#3a7fd4;
+    --s-ready:#6a4fc4;--s-delivered:#2daa7c;--s-review:#d44f90;
+    --danger:#d43a3a;--radius:12px;--radius-sm:8px;
   }
+  body{font-family:'Rubik',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;direction:rtl;font-size:15px;}
   *{box-sizing:border-box;margin:0;padding:0;}
   body{font-family:'Rubik',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;direction:rtl;}
 
@@ -20,7 +21,7 @@
   #loginScreen{position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;z-index:999;
     background-image:url('https://irp.cdn-website.com/1513145c/dms3rep/multi/opt/%D7%A8%D7%A7%D7%A2-%D7%A9%D7%A7%D7%95%D7%A3-640w-163w.webp');
     background-size:cover;background-position:center;}
-  #loginScreen::before{content:'';position:absolute;inset:0;background:rgba(10,10,15,0.82);backdrop-filter:blur(3px);}
+  #loginScreen::before{content:'';position:absolute;inset:0;background:rgba(240,241,245,0.80);backdrop-filter:blur(3px);}
   .login-box{background:var(--surface);border:1px solid var(--accent);border-radius:var(--radius);padding:40px;width:340px;text-align:center;position:relative;z-index:1;box-shadow:0 8px 40px rgba(201,168,76,0.2);}
   .login-logo{font-size:22px;font-weight:700;color:var(--accent);margin-bottom:6px;}
   .login-sub{color:var(--text2);font-size:13px;margin-bottom:32px;}
@@ -33,7 +34,7 @@
   .login-err{color:var(--danger);font-size:12px;margin-top:6px;display:none;}
 
   /* HEADER */
-  header{background:linear-gradient(135deg,#0d0d18 0%,#13131f 100%);border-bottom:2px solid var(--accent);padding:0 24px;display:flex;align-items:center;justify-content:space-between;height:64px;position:sticky;top:0;z-index:100;box-shadow:0 2px 20px rgba(201,168,76,0.15);}
+  header{background:linear-gradient(135deg,#1a1a2e 0%,#2a2a45 100%);border-bottom:3px solid var(--accent);padding:0 24px;display:flex;align-items:center;justify-content:space-between;height:64px;position:sticky;top:0;z-index:100;box-shadow:0 2px 20px rgba(201,168,76,0.2);}
   .logo{font-size:18px;font-weight:700;color:var(--accent);display:flex;align-items:center;gap:10px;}
   .logo span{color:var(--accent);font-weight:600;font-size:13px;margin-right:8px;}
   .logo img{filter:brightness(1.1);}
@@ -102,13 +103,13 @@
   .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px;cursor:pointer;transition:all 0.15s;}
   .card:hover{border-color:var(--accent);transform:translateY(-1px);box-shadow:0 4px 16px rgba(201,168,76,0.12);}
   .card-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;gap:6px;}
-  .card-customer{font-size:14px;font-weight:600;}
+  .card-customer{font-size:16px;font-weight:700;}
   .card-badges{display:flex;gap:4px;align-items:center;flex-shrink:0;flex-wrap:wrap;justify-content:flex-end;}
-  .card-type-badge{font-size:10px;padding:2px 8px;border-radius:10px;background:rgba(79,142,247,0.15);color:var(--accent);white-space:nowrap;}
-  .paid-badge{font-size:10px;font-weight:700;padding:2px 8px;border-radius:6px;cursor:pointer;white-space:nowrap;transition:all 0.15s;}
-  .paid-badge:hover{filter:brightness(1.2);}
-  .card-meta{font-size:11px;color:var(--text2);margin-bottom:4px;}
-  .card-notes{font-size:12px;color:var(--text2);line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+  .card-type-badge{font-size:12px;padding:3px 10px;border-radius:10px;background:rgba(201,168,76,0.18);color:#8a6010;white-space:nowrap;font-weight:600;}
+  .paid-badge{font-size:11px;font-weight:700;padding:3px 10px;border-radius:6px;cursor:pointer;white-space:nowrap;transition:all 0.15s;}
+  .paid-badge:hover{filter:brightness(0.92);}
+  .card-meta{font-size:13px;color:var(--text2);margin-bottom:4px;}
+  .card-notes{font-size:13px;color:var(--text2);line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
 
   .assignee-badge{font-size:10px;padding:2px 8px;border-radius:10px;background:rgba(168,85,247,0.15);color:var(--s-graphic);white-space:nowrap;}
   .unassigned-badge{font-size:10px;padding:2px 8px;border-radius:10px;background:rgba(239,68,68,0.1);color:var(--danger);white-space:nowrap;}
@@ -148,7 +149,7 @@
   .card-move-bar{display:flex;gap:6px;margin-top:10px;padding-top:10px;border-top:1px solid var(--border);}
   .move-btn{flex:1;border:none;border-radius:6px;padding:6px 4px;font-family:'Rubik',sans-serif;font-size:11px;font-weight:600;cursor:pointer;transition:all 0.15s;display:flex;align-items:center;justify-content:center;}
   .move-btn:hover{filter:brightness(1.15);transform:scale(1.02);}
-  .move-prev{background:rgba(255,255,255,0.06);color:var(--text2);}
+  .move-prev{background:rgba(0,0,0,0.06);color:var(--text2);}
   .move-next{color:#fff;}
   .move-next-ordered{background:var(--s-ordered);}
   .move-next-graphic{background:var(--s-graphic);}
@@ -290,18 +291,16 @@
         <div class="form-group"><label>שם לקוח *</label><input type="text" id="f_customer" placeholder="ישראל ישראלי"></div>
         <div class="form-group"><label>טלפון</label><input type="tel" id="f_phone" placeholder="050-0000000"></div>
       </div>
-      <div class="form-row">
-        <div class="form-group"><label>מספר הזמנה / הצעה</label><input type="text" id="f_orderNum" placeholder="#1234"></div>
-        <div class="form-group">
-          <label>סוג עבודה *</label>
-          <select id="f_type" onchange="onTypeChange()">
-            <option value="">בחר...</option>
-            <option>צבעוני</option><option>שחור לבן</option>
-            <option>פלוטר</option><option>לייזר</option><option>גרפיקה</option>
-          </select>
-        </div>
+      <div class="form-group">
+        <label>פריטים *</label>
+        <div id="itemsList"></div>
+        <button type="button" onclick="addItem()" style="margin-top:8px;width:100%;padding:8px;border:1px dashed var(--accent);border-radius:8px;background:rgba(201,168,76,0.05);color:var(--accent);font-family:'Rubik',sans-serif;font-size:13px;font-weight:600;cursor:pointer">+ הוסף פריט</button>
       </div>
       <div class="form-row">
+        <div class="form-group">
+          <label>מספר הזמנה / הצעה</label>
+          <input type="text" id="f_orderNum" placeholder="#1234">
+        </div>
         <div class="form-group">
           <label>מבצע</label>
           <select id="f_assignee">
@@ -310,36 +309,6 @@
             <option value="הילה">הילה</option>
             <option value="יניב">יניב</option>
           </select>
-        </div>
-        <div class="form-group" id="adminAssignRow" style="display:none">
-          <label>פעולה מהירה</label>
-          <div style="display:flex;gap:6px;margin-top:6px">
-            <button class="btn btn-ghost btn-sm" onclick="assignToMe()" style="flex:1;justify-content:center">משוך אליי</button>
-            <button class="btn btn-ghost btn-sm" onclick="unassign()" style="flex:1;justify-content:center">הסר שיוך</button>
-          </div>
-        </div>
-      </div>
-      <div class="form-group">
-        <label>סטטוס</label>
-        <div class="status-selector">
-          <div class="status-opt" data-s="ordered"    onclick="selectStatus('ordered')">   <div class="s-dot" style="background:var(--s-ordered)"></div>הוזמן</div>
-          <div class="status-opt" data-s="graphic"    onclick="selectStatus('graphic')">   <div class="s-dot" style="background:var(--s-graphic)"></div>גרפיקה</div>
-          <div class="status-opt" data-s="production" onclick="selectStatus('production')"><div class="s-dot" style="background:var(--s-production)"></div>ייצור</div>
-          <div class="status-opt" data-s="ready"      onclick="selectStatus('ready')">     <div class="s-dot" style="background:var(--s-ready)"></div>מוכן</div>
-          <div class="status-opt" data-s="delivered"  onclick="selectStatus('delivered')"> <div class="s-dot" style="background:var(--s-delivered)"></div>נמסר</div>
-        </div>
-      </div>
-      <div id="graphicSubsteps" style="display:none">
-        <div style="font-size:12px;color:var(--text2);font-weight:500;margin-bottom:8px">תת-שלבי גרפיקה</div>
-        <div style="display:flex;gap:10px;flex-wrap:wrap">
-          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:9px 14px;border-radius:8px;border:1px solid rgba(236,72,153,0.35);background:rgba(236,72,153,0.07);flex:1">
-            <input type="checkbox" id="f_inReview" style="width:16px;height:16px;accent-color:var(--s-review)" onchange="onReviewChange()">
-            <span style="font-size:13px;font-weight:600;color:var(--s-review)">🔍 בהגהה</span>
-          </label>
-          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:9px 14px;border-radius:8px;border:1px solid rgba(16,185,129,0.35);background:rgba(16,185,129,0.07);flex:1">
-            <input type="checkbox" id="f_approved" style="width:16px;height:16px;accent-color:var(--s-delivered)" onchange="onApprovedChange()">
-            <span style="font-size:13px;font-weight:600;color:var(--s-delivered)">✅ אישור לקוח</span>
-          </label>
         </div>
       </div>
       <div class="form-group"><label>הערות</label><textarea id="f_notes" placeholder="תיאור העבודה, פרטים מיוחדים..."></textarea></div>
@@ -563,28 +532,45 @@ function dbStatus(ok){
 function fromDB(r){
   return {
     id:r.id, customer:r.customer, phone:r.phone||'',
-    orderNum:r.order_num||'', type:r.type||'', notes:r.notes||'',
-    status:r.status||'ordered', assignee:r.assignee||null,
+    orderNum:r.order_num||'', notes:r.notes||'',
+    // תאימות אחורה – אם אין items, בנה פריט אחד מהשדות הישנים
+    items: (r.items&&r.items.length>0) ? r.items : [{
+      id:'item_0', type:r.type||'', status:r.status||'ordered',
+      qty:'', inReview:!!r.in_review, approved:!!r.approved,
+      prodSteps:r.prod_steps||{}, prodNote:r.prod_note||'',
+      statusDates:r.status_dates||{}
+    }],
+    assignee:r.assignee||null,
     urgent:!!r.urgent, paid:!!r.paid,
-    inReview:!!r.in_review, approved:!!r.approved,
-    prodSteps:r.prod_steps||{}, prodNote:r.prod_note||'',
-    statusDates:r.status_dates||{}, log:r.log||[],
-    waSentAt:r.wa_sent_at||null,
+    log:r.log||[], waSentAt:r.wa_sent_at||null,
     createdAt:r.created_at, updatedAt:r.updated_at
   };
 }
 
+// חישוב הסטטוס הכולל של ההזמנה (הכי נמוך)
+function orderStatus(o){
+  const idx=s=>STATUS_ORDER.indexOf(s);
+  return (o.items||[]).reduce((min,item)=>{
+    const i=idx(item.status);
+    return i<idx(min)?item.status:min;
+  }, 'delivered');
+}
+
 // המרת אובייקט פנימי → שורת DB
 function toDB(o){
+  const firstItem=o.items?.[0]||{};
   return {
     id:o.id, customer:o.customer, phone:o.phone||null,
-    order_num:o.orderNum||null, type:o.type||null, notes:o.notes||null,
-    status:o.status, assignee:o.assignee||null,
+    order_num:o.orderNum||null, notes:o.notes||null,
+    // שדות ישנים לתאימות
+    type:firstItem.type||null, status:orderStatus(o),
+    assignee:o.assignee||null,
     urgent:!!o.urgent, paid:!!o.paid,
-    in_review:!!o.inReview, approved:!!o.approved,
-    prod_steps:o.prodSteps||{}, prod_note:o.prodNote||null,
-    status_dates:o.statusDates||{}, log:o.log||[],
-    wa_sent_at:o.waSentAt||null,
+    in_review:!!firstItem.inReview, approved:!!firstItem.approved,
+    prod_steps:firstItem.prodSteps||{}, prod_note:firstItem.prodNote||null,
+    status_dates:firstItem.statusDates||{},
+    log:o.log||[], wa_sent_at:o.waSentAt||null,
+    items:o.items||[],
     created_at:o.createdAt, updated_at:o.updatedAt
   };
 }
@@ -681,8 +667,10 @@ function loadLocal(){
 function getFiltered(){
   const q=document.getElementById('searchInput').value.trim().toLowerCase();
   return orders.filter(o=>{
-    const mq=!q||o.customer.toLowerCase().includes(q)||(o.orderNum||'').toLowerCase().includes(q)||(o.type||'').includes(q)||(o.notes||'').toLowerCase().includes(q);
-    return mq&&(!activeTypeFilter||o.type===activeTypeFilter);
+    const types=(o.items||[]).map(i=>i.type).join(' ').toLowerCase();
+    const mq=!q||o.customer.toLowerCase().includes(q)||(o.orderNum||'').toLowerCase().includes(q)||types.includes(q)||(o.notes||'').toLowerCase().includes(q);
+    const matchType=!activeTypeFilter||(o.items||[]).some(i=>i.type===activeTypeFilter);
+    return mq&&matchType;
   });
 }
 
@@ -695,6 +683,8 @@ function renderAll(){
   else renderEmployeeView();
 }
 
+let employeeView='mine'; // 'mine' | 'all'
+
 function renderStats(){
   const counts={};
   STATUS_ORDER.forEach(s=>counts[s]=0);
@@ -702,7 +692,7 @@ function renderStats(){
   const relevant = isAdmin
     ? (adminView==='mine' ? orders.filter(o=>o.assignee===currentUser) : orders)
     : orders.filter(o=>o.assignee===currentUser);
-  relevant.forEach(o=>{if(counts[o.status]!==undefined)counts[o.status]++;});
+  relevant.forEach(o=>{const s=orderStatus(o);if(counts[s]!==undefined)counts[s]++;});
   document.getElementById('statsBar').innerHTML=STATUS_ORDER.map(s=>{
     const info=STATUSES[s];
     const isActive=activeSection===s;
@@ -738,14 +728,24 @@ function renderEmployeeView(){
   const unassigned=filtered.filter(o=>!o.assignee&&o.status!=='delivered');
   let html='';
 
-  // הזמנות שלי
+  // כפתורי מעבר תצוגה לעובדת
+  html+=`<div style="display:flex;gap:8px;margin-bottom:20px">
+    <button onclick="employeeView='mine';renderAll()" style="padding:8px 18px;border-radius:20px;border:1px solid var(--border);background:${employeeView==='mine'?'linear-gradient(135deg,var(--accent),var(--accent2))':'var(--surface)'};color:${employeeView==='mine'?'#1a1a2e':'var(--text2)'};font-family:'Rubik',sans-serif;font-size:13px;font-weight:600;cursor:pointer">שלי</button>
+    <button onclick="employeeView='all';renderAll()" style="padding:8px 18px;border-radius:20px;border:1px solid var(--border);background:${employeeView==='all'?'linear-gradient(135deg,var(--accent),var(--accent2))':'var(--surface)'};color:${employeeView==='all'?'#1a1a2e':'var(--text2)'};font-family:'Rubik',sans-serif;font-size:13px;font-weight:600;cursor:pointer">כל העבודות</button>
+  </div>`;
+
+  if(employeeView==='all'){
+    html+=renderStatusSectionsHTML(filtered,'employee-all');
+    document.getElementById('mainContent').innerHTML=html;
+    return;
+  }
+
   if(mine.length>0){
     html+=renderStatusSectionsHTML(mine,'employee-mine');
   } else {
     html+='<div class="empty-msg" style="margin-bottom:16px">אין הזמנות משויכות אליך</div>';
   }
 
-  // הזמנות לא משויכות
   if(unassigned.length>0){
     html+=`<div class="section-divider">
       <div class="section-divider-line"></div>
@@ -768,7 +768,7 @@ function renderStatusSectionsHTML(items,mode){
   let html='';
   for(const status of statusesToShow){
     const info=STATUSES[status];
-    const group=items.filter(o=>o.status===status).sort((a,b)=>(b.urgent?1:0)-(a.urgent?1:0));
+    const group=items.filter(o=>orderStatus(o)===status).sort((a,b)=>(b.urgent?1:0)-(a.urgent?1:0));
     if(!activeSection&&group.length===0)continue;
     const cols=group.length<=1?1:group.length===2?2:3;
     html+=`<div style="margin-bottom:24px">
@@ -785,47 +785,8 @@ function renderStatusSectionsHTML(items,mode){
 }
 
 function cardHTML(o, showClaimBtn=false){
-  const isAdmin=USERS[currentEmail]?.role==='admin';
-  const idx=STATUS_ORDER.indexOf(o.status);
-  const prevS=idx>0?STATUS_ORDER[idx-1]:null;
-  const nextS=idx<STATUS_ORDER.length-1?STATUS_ORDER[idx+1]:null;
-  const prevBtn=prevS?`<button class="move-btn move-prev" onclick="event.stopPropagation();quickMove('${o.id}','${prevS}')">← ${STATUSES[prevS].label}</button>`:'';
-  const nextBtn=nextS
-    ?`<button class="move-btn move-next move-next-${nextS}" onclick="event.stopPropagation();quickMove('${o.id}','${nextS}')">${STATUSES[nextS].label} →</button>`
-    :`<button class="move-btn move-next move-next-delivered" style="opacity:0.4;cursor:default">✓ נמסר</button>`;
-
-  const dates=o.statusDates||{};
-  const dateLine=STATUS_ORDER.filter(s=>dates[s]).map(s=>`<span style="margin-left:8px">${STATUSES[s].label}: ${formatDate(dates[s])}</span>`).join('');
-
-  const showGraphicSteps=o.status==='graphic'||o.type==='גרפיקה';
-  const graphicSteps=showGraphicSteps?`
-    <div class="substeps">
-      <button class="substep-btn ${o.inReview?'on-review':'off'}" onclick="event.stopPropagation();toggleSubstep('${o.id}','inReview')">${o.inReview?'🔍 בהגהה':'🔍 הגהה'}</button>
-      <button class="substep-btn ${o.approved?'on-approved':'off'}" onclick="event.stopPropagation();toggleSubstep('${o.id}','approved')">${o.approved?'✅ אושר':'✅ אישור לקוח'}</button>
-    </div>`:'';
-
-  const prodStepsList=PROD_STEPS[o.type]||[];
-  const showProdSteps=o.status==='production'&&prodStepsList.length>0;
-  const steps=o.prodSteps||{};
-  const prodStepsHTML=showProdSteps?`<div class="prod-steps">${
-    prodStepsList.map(step=>{
-      const done=!!steps[step];
-      return `<div class="prod-step${done?' done':''}" onclick="event.stopPropagation();toggleProdStep('${o.id}','${step}')">
-        <div class="prod-step-check">${done?'✓':''}</div><span style="flex:1">${step}</span></div>`;
-    }).join('')
-  }<div style="margin-top:6px"><textarea onclick="event.stopPropagation()" onblur="saveProdNote('${o.id}',this.value)" placeholder="הערה על מצב העבודה..."
-    style="width:100%;background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:6px 8px;font-family:'Rubik',sans-serif;font-size:11px;resize:none;height:52px;direction:rtl">${esc(o.prodNote||'')}</textarea></div></div>`:'';
-
   const paidBadge=`<div class="paid-badge" style="${o.paid?'background:rgba(16,185,129,0.2);color:var(--s-delivered);border:1px solid rgba(16,185,129,0.4)':'background:rgba(239,68,68,0.15);color:var(--danger);border:1px solid rgba(239,68,68,0.3)'}" onclick="event.stopPropagation();togglePaid('${o.id}')">${o.paid?'✓ שולם':'✗ לא שולם'}</div>`;
 
-  const waBtn=o.status==='ready'&&o.phone
-    ?`<button onclick="event.stopPropagation();sendWhatsAppDirect('${esc(o.phone)}','${esc(o.customer)}')"
-        style="width:100%;margin-top:8px;padding:9px;border:none;border-radius:8px;background:#25d366;color:#fff;font-family:'Rubik',sans-serif;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px">
-        📲 שלח הודעת וואטסאפ${o.waSentAt?` <span style="font-size:10px;opacity:0.85">(נשלח ${formatDateTime(o.waSentAt)})</span>`:''}
-      </button>`
-    :'';
-
-  // assignee dropdown על הכרטיס – לכולם
   const menuItems=ALL_USERS.map(u=>
     `<div class="assignee-menu-item${o.assignee===u?' active':''}" onclick="event.stopPropagation();setAssignee('${o.id}','${u}');closeAssigneeMenus()">${u==='יערית'?'👩':u==='הילה'?'👩‍💼':'👨‍💼'} ${u}</div>`
   ).join('')+`<div class="assignee-menu-item unassign" onclick="event.stopPropagation();setAssignee('${o.id}','');closeAssigneeMenus()">✕ הסר שיוך</div>`;
@@ -837,26 +798,103 @@ function cardHTML(o, showClaimBtn=false){
     <div class="assignee-menu" id="menu-${o.id}">${menuItems}</div>
   </div>`;
 
-  return `<div class="card" onclick="openEdit('${o.id}')" style="${o.urgent?'border-color:var(--danger)':''}">
+  // פריטים
+  const itemsHTML=(o.items||[]).map((item,i)=>{
+    const isGraphic=item.type==='גרפיקה'||item.status==='graphic';
+    const prodStepsList=PROD_STEPS[item.type]||[];
+    const showProd=item.status==='production'&&prodStepsList.length>0;
+    const stepsHTML=showProd?`<div class="prod-steps" style="margin-top:6px">${
+      prodStepsList.map(step=>{
+        const done=!!(item.prodSteps||{})[step];
+        return `<div class="prod-step${done?' done':''}" onclick="event.stopPropagation();toggleItemProdStep('${o.id}',${i},'${step}')">
+          <div class="prod-step-check">${done?'✓':''}</div><span style="flex:1">${step}</span></div>`;
+      }).join('')
+    }<textarea onclick="event.stopPropagation()" onblur="saveItemProdNote('${o.id}',${i},this.value)" placeholder="הערה..."
+      style="width:100%;margin-top:4px;background:var(--surface);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:5px 8px;font-family:'Rubik',sans-serif;font-size:11px;resize:none;height:44px;direction:rtl">${esc(item.prodNote||'')}</textarea></div>`:'';
+
+    const graphicHTML=isGraphic?`<div class="substeps" style="margin-top:6px">
+      <button class="substep-btn ${item.inReview?'on-review':'off'}" onclick="event.stopPropagation();toggleItemSubstep('${o.id}',${i},'inReview')">${item.inReview?'🔍 בהגהה':'🔍 הגהה'}</button>
+      <button class="substep-btn ${item.approved?'on-approved':'off'}" onclick="event.stopPropagation();toggleItemSubstep('${o.id}',${i},'approved')">${item.approved?'✅ אושר':'✅ אישור'}</button>
+    </div>`:'';
+
+    const si=STATUS_ORDER.indexOf(item.status);
+    const prevS=si>0?STATUS_ORDER[si-1]:null;
+    const nextS=si<STATUS_ORDER.length-1?STATUS_ORDER[si+1]:null;
+    const sc=STATUSES[item.status]?.color||'var(--text2)';
+
+    return `<div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px;margin-top:8px">
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+        <span style="font-size:13px;font-weight:700">${esc(item.type)||'?'}</span>
+        ${item.qty?`<span style="font-size:12px;color:var(--text2)">× ${esc(item.qty)}</span>`:''}
+        <span style="font-size:11px;padding:2px 8px;border-radius:10px;background:rgba(0,0,0,0.06);color:${sc};font-weight:600;border:1px solid ${sc}">${STATUSES[item.status]?.label||item.status}</span>
+        <div style="display:flex;gap:4px;margin-right:auto">
+          ${prevS?`<button onclick="event.stopPropagation();moveItem('${o.id}',${i},'${prevS}')" style="padding:2px 8px;border:1px solid var(--border);border-radius:6px;background:none;color:var(--text2);cursor:pointer;font-size:11px;font-family:'Rubik',sans-serif">← ${STATUSES[prevS].label}</button>`:''}
+          ${nextS?`<button onclick="event.stopPropagation();moveItem('${o.id}',${i},'${nextS}')" style="padding:2px 8px;border:none;border-radius:6px;background:${STATUSES[nextS].color};color:#fff;cursor:pointer;font-size:11px;font-family:'Rubik',sans-serif">${STATUSES[nextS].label} →</button>`:''}
+        </div>
+      </div>
+      ${graphicHTML}${stepsHTML}
+    </div>`;
+  }).join('');
+
+  const allReady=(o.items||[]).length>0&&(o.items||[]).every(item=>item.status==='ready'||item.status==='delivered');
+  const waBtn=allReady&&o.phone
+    ?`<button onclick="event.stopPropagation();sendWhatsAppDirect('${esc(o.phone)}','${esc(o.customer)}')"
+        style="width:100%;margin-top:8px;padding:9px;border:none;border-radius:8px;background:#25d366;color:#fff;font-family:'Rubik',sans-serif;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px">
+        📲 שלח הודעת וואטסאפ${o.waSentAt?` <span style="font-size:10px;opacity:0.85">(נשלח ${formatDateTime(o.waSentAt)})</span>`:''}
+      </button>`:'';
+
+  return `<div class="card" onclick="openEdit('${o.id}')" style="${o.urgent?'border:2px solid var(--danger);background:rgba(212,58,58,0.06)':''}">
     <div class="card-top">
       <div class="card-customer">${o.urgent?'🚨 ':''}${esc(o.customer)}</div>
-      <div class="card-badges">
-        ${o.type?`<div class="card-type-badge">${esc(o.type)}</div>`:''}
-        ${paidBadge}
-      </div>
+      <div class="card-badges">${paidBadge}</div>
     </div>
     ${assigneeDropdown}
     ${o.orderNum?`<div class="card-meta">${esc(o.orderNum)}</div>`:''}
     ${o.phone?`<div class="card-meta"><a href="tel:${esc(o.phone)}" onclick="event.stopPropagation()" style="color:var(--accent);text-decoration:none">📞 ${esc(o.phone)}</a></div>`:''}
     ${o.notes?`<div class="card-notes">${esc(o.notes)}</div>`:''}
-    ${graphicSteps}${prodStepsHTML}
+    ${itemsHTML}
     ${waBtn}
-    ${dateLine?`<div class="dates-row">${dateLine}</div>`:''}
-    <div class="card-move-bar">${prevBtn}${nextBtn}</div>
   </div>`;
 }
 
 // ── ACTIONS ───────────────────────────────────────────
+function moveItem(orderId,itemIdx,newStatus){
+  const o=orders.find(x=>x.id===orderId);if(!o)return;
+  if(!o.items[itemIdx])return;
+  o.items[itemIdx].status=newStatus;
+  if(!o.items[itemIdx].statusDates)o.items[itemIdx].statusDates={};
+  o.items[itemIdx].statusDates[newStatus]=new Date().toISOString();
+  o.updatedAt=new Date().toISOString();
+  addLog(o,`פריט "${o.items[itemIdx].type}" → ${STATUSES[newStatus].label}`);
+  saveLocal();saveOrderToDB(o);renderAll();
+  showToast(`✓ ${STATUSES[newStatus].label}`);
+}
+
+function toggleItemSubstep(orderId,itemIdx,field){
+  const o=orders.find(x=>x.id===orderId);if(!o||!o.items[itemIdx])return;
+  const item=o.items[itemIdx];
+  if(field==='approved'&&!item.approved){item.inReview=false;item.approved=true;}
+  else if(field==='inReview'&&item.approved){item.approved=false;item.inReview=true;}
+  else item[field]=!item[field];
+  o.updatedAt=new Date().toISOString();
+  saveLocal();saveOrderToDB(o);renderAll();
+}
+
+function toggleItemProdStep(orderId,itemIdx,step){
+  const o=orders.find(x=>x.id===orderId);if(!o||!o.items[itemIdx])return;
+  if(!o.items[itemIdx].prodSteps)o.items[itemIdx].prodSteps={};
+  o.items[itemIdx].prodSteps[step]=!o.items[itemIdx].prodSteps[step];
+  o.updatedAt=new Date().toISOString();
+  addLog(o,`${o.items[itemIdx].prodSteps[step]?'סימן':'ביטל'} שלב: ${step}`);
+  saveLocal();saveOrderToDB(o);renderAll();
+}
+
+function saveItemProdNote(orderId,itemIdx,text){
+  const o=orders.find(x=>x.id===orderId);if(!o||!o.items[itemIdx])return;
+  o.items[itemIdx].prodNote=text.trim();
+  saveLocal();saveOrderToDB(o);
+}
+
 function toggleAssigneeMenu(menuId){
   // סגור כל התפריטים הפתוחים קודם
   document.querySelectorAll('.assignee-menu.open').forEach(m=>{
@@ -946,34 +984,58 @@ function sendWhatsAppDirect(phone,customer){
 }
 
 // ── MODAL ─────────────────────────────────────────────
-function onTypeChange(){
-  const t=document.getElementById('f_type').value;
-  document.getElementById('graphicSubsteps').style.display=t==='גרפיקה'?'block':'none';
-}
-function onReviewChange(){if(document.getElementById('f_inReview').checked)document.getElementById('f_approved').checked=false;}
-function onApprovedChange(){if(document.getElementById('f_approved').checked)document.getElementById('f_inReview').checked=false;}
+let formItems=[]; // פריטים בטופס
 
+function renderItemsList(){
+  document.getElementById('itemsList').innerHTML=formItems.map((item,i)=>`
+    <div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px;margin-bottom:8px">
+      <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">
+        <select onchange="formItems[${i}].type=this.value;renderItemsList()" style="flex:2;background:var(--surface);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:7px 10px;font-family:'Rubik',sans-serif;font-size:13px">
+          <option value="">בחר סוג...</option>
+          ${['צבעוני','שחור לבן','פלוטר','לייזר','גרפיקה'].map(t=>`<option${item.type===t?' selected':''}>${t}</option>`).join('')}
+        </select>
+        <input type="text" value="${esc(item.qty||'')}" onchange="formItems[${i}].qty=this.value" placeholder="כמות" style="flex:1;background:var(--surface);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:7px 10px;font-family:'Rubik',sans-serif;font-size:13px">
+        ${formItems.length>1?`<button onclick="removeItem(${i})" style="border:none;background:none;color:var(--danger);cursor:pointer;font-size:16px;padding:4px">✕</button>`:''}
+      </div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        ${STATUS_ORDER.map(s=>`
+          <button onclick="formItems[${i}].status='${s}';renderItemsList()" style="padding:4px 10px;border-radius:6px;border:1px solid ${item.status===s?STATUSES[s].color:'var(--border)'};background:${item.status===s?'rgba(0,0,0,0.06)':'none'};color:${item.status===s?STATUSES[s].color:'var(--text2)'};font-family:'Rubik',sans-serif;font-size:12px;font-weight:${item.status===s?'700':'400'};cursor:pointer">
+            ${STATUSES[s].label}
+          </button>`).join('')}
+      </div>
+    </div>`).join('');
+}
+
+function addItem(){
+  formItems.push({id:`item_${Date.now()}`,type:'',qty:'',status:'ordered',inReview:false,approved:false,prodSteps:{},prodNote:'',statusDates:{ordered:new Date().toISOString()}});
+  renderItemsList();
+}
+
+function removeItem(i){
+  formItems.splice(i,1);
+  renderItemsList();
+}
+
+function onTypeChange(){}
+function onReviewChange(){}
+function onApprovedChange(){}
 function assignToMe(){document.getElementById('f_assignee').value=currentUser;}
 function unassign(){document.getElementById('f_assignee').value='';}
+function selectStatus(s){currentStatus=s;}
 
 function openNewModal(){
   editingId=null;
   document.getElementById('modalTitle').textContent='הזמנה חדשה';
   ['f_customer','f_phone','f_orderNum','f_notes'].forEach(id=>document.getElementById(id).value='');
-  document.getElementById('f_type').value='';
-  document.getElementById('f_assignee').value=currentUser; // ברירת מחדל – המשתמש הנוכחי
+  document.getElementById('f_assignee').value=currentUser||'';
   document.getElementById('f_urgent').checked=false;
   document.getElementById('f_paid').checked=false;
-  document.getElementById('f_inReview').checked=false;
-  document.getElementById('f_approved').checked=false;
-  document.getElementById('graphicSubsteps').style.display='none';
   document.getElementById('logSection').style.display='none';
   document.getElementById('deleteBtn').style.display='none';
   document.getElementById('waBtn').style.display='none';
   document.getElementById('waSentBadge').style.display='none';
-  const isAdmin=USERS[currentEmail]?.role==='admin';
-  document.getElementById('adminAssignRow').style.display=isAdmin?'block':'none';
-  selectStatus('ordered');
+  formItems=[{id:`item_${Date.now()}`,type:'',qty:'',status:'ordered',inReview:false,approved:false,prodSteps:{},prodNote:'',statusDates:{ordered:new Date().toISOString()}}];
+  renderItemsList();
   document.getElementById('orderModal').classList.add('open');
   setTimeout(()=>document.getElementById('f_customer').focus(),100);
 }
@@ -985,25 +1047,22 @@ function openEdit(id){
   document.getElementById('f_customer').value=o.customer;
   document.getElementById('f_phone').value=o.phone||'';
   document.getElementById('f_orderNum').value=o.orderNum||'';
-  document.getElementById('f_type').value=o.type||'';
   document.getElementById('f_notes').value=o.notes||'';
   document.getElementById('f_assignee').value=o.assignee||'';
   document.getElementById('f_urgent').checked=!!o.urgent;
   document.getElementById('f_paid').checked=!!o.paid;
-  document.getElementById('f_inReview').checked=!!o.inReview;
-  document.getElementById('f_approved').checked=!!o.approved;
-  document.getElementById('graphicSubsteps').style.display=(o.type==='גרפיקה'||o.status==='graphic')?'block':'none';
+  formItems=JSON.parse(JSON.stringify(o.items||[]));
+  renderItemsList();
   const isAdmin=USERS[currentEmail]?.role==='admin';
   document.getElementById('deleteBtn').style.display=isAdmin?'inline-flex':'none';
-  document.getElementById('adminAssignRow').style.display=isAdmin?'block':'none';
-  document.getElementById('waBtn').style.display=(o.status==='ready'&&o.phone)?'flex':'none';
+  const allReady=(o.items||[]).every(item=>item.status==='ready'||item.status==='delivered');
+  document.getElementById('waBtn').style.display=(allReady&&o.phone)?'flex':'none';
   if(o.waSentAt){
     document.getElementById('waSentBadge').style.display='flex';
     document.getElementById('waSentTime').textContent=formatDateTime(o.waSentAt);
   }else{
     document.getElementById('waSentBadge').style.display='none';
   }
-  selectStatus(o.status);
   document.getElementById('logSection').style.display='block';
   if(isAdmin){
     const log=o.log||[];
@@ -1012,63 +1071,48 @@ function openEdit(id){
       ?[...log].reverse().slice(0,10).map(l=>`<div class="log-entry"><span><span class="log-who">${esc(l.user)}</span> – ${esc(l.action)}</span><span>${formatDateTime(l.time)}</span></div>`).join('')
       :'<div style="font-size:12px;color:var(--text2)">אין פעולות עדיין</div>';
   }else{
-    const dates=o.statusDates||{};
     document.getElementById('logTitle').textContent='📅 מעקב שלבים';
-    document.getElementById('logEntries').innerHTML=STATUS_ORDER.filter(s=>dates[s]).map(s=>
-      `<div class="log-entry"><span style="font-weight:500">${STATUSES[s].label}</span><span>${formatDateTime(dates[s])}</span></div>`
-    ).join('')||'<div style="font-size:12px;color:var(--text2)">אין מעקב עדיין</div>';
+    const allDates=(o.items||[]).flatMap(item=>
+      STATUS_ORDER.filter(s=>(item.statusDates||{})[s]).map(s=>({s,t:item.statusDates[s],type:item.type}))
+    ).sort((a,b)=>a.t.localeCompare(b.t));
+    document.getElementById('logEntries').innerHTML=allDates.length
+      ?allDates.map(d=>`<div class="log-entry"><span style="font-weight:500">${d.type} – ${STATUSES[d.s].label}</span><span>${formatDateTime(d.t)}</span></div>`).join('')
+      :'<div style="font-size:12px;color:var(--text2)">אין מעקב עדיין</div>';
   }
   document.getElementById('orderModal').classList.add('open');
 }
 
 function closeModal(){document.getElementById('orderModal').classList.remove('open');}
-
-function selectStatus(s){
-  currentStatus=s;
-  document.querySelectorAll('.status-opt').forEach(el=>{
-    el.className='status-opt'+(el.dataset.s===s?` selected-${el.dataset.s}`:'');
-  });
-}
+function selectStatus(s){currentStatus=s;}
 
 function saveOrder(){
   const customer=document.getElementById('f_customer').value.trim();
   if(!customer){showToast('⚠️ שם לקוח חובה');return;}
-  if(!document.getElementById('f_type').value){showToast('⚠️ סוג עבודה חובה');return;}
+  if(!formItems.length||!formItems[0].type){showToast('⚠️ יש להוסיף לפחות פריט אחד עם סוג');return;}
   const now=new Date().toISOString();
-  const isGraphic=document.getElementById('f_type').value==='גרפיקה'||currentStatus==='graphic';
-  const approved=isGraphic?document.getElementById('f_approved').checked:false;
-  const inReview=isGraphic&&!approved?document.getElementById('f_inReview').checked:false;
   const order={
     id:editingId||Date.now().toString(),
     customer,
     phone:document.getElementById('f_phone').value.trim(),
     orderNum:document.getElementById('f_orderNum').value.trim(),
-    type:document.getElementById('f_type').value,
     notes:document.getElementById('f_notes').value.trim(),
     assignee:document.getElementById('f_assignee').value||null,
     urgent:document.getElementById('f_urgent').checked,
     paid:document.getElementById('f_paid').checked,
-    inReview,approved,
-    status:currentStatus,
-    updatedAt:now,statusDates:{},log:[]
+    items:formItems,
+    updatedAt:now, log:[]
   };
   if(editingId){
     const idx=orders.findIndex(x=>x.id===editingId);
     const prev=orders[idx];
     order.createdAt=prev.createdAt;
-    order.statusDates={...prev.statusDates};
     order.log=prev.log||[];
-    order.prodSteps=prev.prodSteps||{};
-    order.prodNote=prev.prodNote||'';
     order.waSentAt=prev.waSentAt||null;
-    if(prev.status!==currentStatus)order.statusDates[currentStatus]=now;
     if(prev.assignee!==order.assignee)addLog(order,`שינה מבצע מ"${prev.assignee||'לא משויך'}" ל"${order.assignee||'לא משויך'}"`);
-    addLog(order,`ערך הזמנה (${prev.status!==currentStatus?`סטטוס → ${STATUSES[currentStatus].label}`:'פרטים'})`);
+    addLog(order,'ערך הזמנה');
     orders[idx]=order;
   }else{
     order.createdAt=now;
-    order.statusDates['ordered']=now;
-    order.prodSteps={};order.prodNote='';
     order.log=[];
     addLog(order,'פתח הזמנה חדשה');
     orders.unshift(order);
@@ -1090,7 +1134,6 @@ function deleteOrder(){
 function openSettings(){
   document.getElementById('s_total').textContent=orders.length;
   document.getElementById('s_unpaid').textContent=orders.filter(o=>!o.paid&&o.status!=='delivered').length;
-  document.getElementById('s_oldPass').value='';
   document.getElementById('s_newPass').value='';
   document.getElementById('s_waMsg').value=waMsg;
   document.getElementById('settingsModal').classList.add('open');
