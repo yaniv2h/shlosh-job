@@ -486,6 +486,11 @@ function setAdminView(v){
 }
 
 // ── PROD STEPS ────────────────────────────────────────
+const USER_COLORS={
+  'יערית': {bg:'rgba(59,130,246,0.15)', color:'#2563eb'},
+  'הילה':  {bg:'rgba(236,72,153,0.15)', color:'#be185d'},
+  'יניב':  {bg:'rgba(16,185,129,0.15)', color:'#047857'},
+};
 const PROD_STEPS={
   'צבעוני':  ['הודפס','דבק','סיכות','בחיתוך','באריזה'],
   'שחור לבן':['הודפס','דבק','סיכות','בחיתוך','באריזה'],
@@ -794,12 +799,12 @@ function cardHTML(o, showClaimBtn=false){
   const multiItems=(o.items||[]).length>1;
 
   // שיוך להזמנה כולה – רק כשיש פריט אחד
-  const menuItems=ALL_USERS.map(u=>
-    `<div class="assignee-menu-item${o.assignee===u?' active':''}" onclick="event.stopPropagation();setAssignee('${o.id}','${u}');closeAssigneeMenus()">${u==='יערית'?'👩':u==='הילה'?'👩‍💼':'👨‍💼'} ${u}</div>`
+  const menuItems=ALL_USERS.map(u=>`<div class="assignee-menu-item${o.assignee===u?' active':''}" onclick="event.stopPropagation();setAssignee('${o.id}','${u}');closeAssigneeMenus()" style="${o.assignee===u?`color:${USER_COLORS[u]?.color};font-weight:700`:''}">${u==='יערית'?'👩':u==='הילה'?'👩‍💼':'👨‍💼'} ${u}</div>`
   ).join('')+`<div class="assignee-menu-item unassign" onclick="event.stopPropagation();setAssignee('${o.id}','');closeAssigneeMenus()">✕ הסר שיוך</div>`;
 
+  const uc=USER_COLORS[o.assignee];
   const assigneeDropdown=!multiItems?`<div class="assignee-wrap" onclick="event.stopPropagation()">
-    <div class="assignee-pill ${o.assignee?'assigned':'unassigned'}" onclick="toggleAssigneeMenu('menu-${o.id}')">
+    <div class="assignee-pill ${o.assignee?'assigned':'unassigned'}" style="${uc?`background:${uc.bg};color:${uc.color};border-color:${uc.color}`:''}" onclick="toggleAssigneeMenu('menu-${o.id}')">
       👤 ${o.assignee||'לא משויך'} ▾
     </div>
     <div class="assignee-menu" id="menu-${o.id}">${menuItems}</div>
@@ -833,17 +838,25 @@ function cardHTML(o, showClaimBtn=false){
       <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
         <span style="font-size:13px;font-weight:700">${esc(item.type)||'?'}</span>
         ${item.qty?`<span style="font-size:12px;color:var(--text2)">× ${esc(item.qty)}</span>`:''}
-        ${item.assignee?`<span style="font-size:11px;padding:2px 8px;border-radius:10px;background:rgba(168,85,247,0.12);color:var(--s-graphic);font-weight:600">👤 ${esc(item.assignee)}</span>`:''}
-        <span style="font-size:11px;padding:2px 8px;border-radius:10px;background:rgba(0,0,0,0.06);color:${sc};font-weight:600;border:1px solid ${sc}">${STATUSES[item.status]?.label||item.status}</span>
-        ${multiItems?`<div class="assignee-wrap" onclick="event.stopPropagation()" style="margin-right:auto">
-          <div class="assignee-pill ${item.assignee?'assigned':'unassigned'}" style="font-size:11px;padding:2px 8px" onclick="toggleAssigneeMenu('menu-${o.id}-${i}')">
-            👤 ${item.assignee||'שייך'} ▾
+        ${item.assignee?`<span style="font-size:11px;padding:2px 8px;border-radius:10px;background:rgba(0,0,0,0.06);color:${sc};font-weight:600;border:1px solid ${sc}">${STATUSES[item.status]?.label||item.status}</span>
+        ${multiItems?`<div class="assignee-wrap" onclick="event.stopPropagation()" style="margin-right:auto;position:relative;z-index:10">
+          <div class="assignee-pill assigned" style="font-size:11px;padding:2px 10px;background:${USER_COLORS[item.assignee]?.bg||'rgba(168,85,247,0.12)'};color:${USER_COLORS[item.assignee]?.color||'var(--s-graphic)'};border-color:${USER_COLORS[item.assignee]?.color||'var(--s-graphic)'}" onclick="toggleAssigneeMenu('menu-${o.id}-${i}')">
+            👤 ${item.assignee} ▾
           </div>
-          <div class="assignee-menu" id="menu-${o.id}-${i}">
-            ${ALL_USERS.map(u=>`<div class="assignee-menu-item${item.assignee===u?' active':''}" onclick="event.stopPropagation();setItemAssignee('${o.id}',${i},'${u}');closeAssigneeMenus()">${u==='יערית'?'👩':u==='הילה'?'👩‍💼':'👨‍💼'} ${u}</div>`).join('')}
+          <div class="assignee-menu" id="menu-${o.id}-${i}" style="z-index:100">
+            ${ALL_USERS.map(u=>`<div class="assignee-menu-item${item.assignee===u?' active':''}" onclick="event.stopPropagation();setItemAssignee('${o.id}',${i},'${u}');closeAssigneeMenus()" style="${item.assignee===u?`color:${USER_COLORS[u]?.color};font-weight:700`:''}">${u==='יערית'?'👩':u==='הילה'?'👩‍💼':'👨‍💼'} ${u}</div>`).join('')}
             <div class="assignee-menu-item unassign" onclick="event.stopPropagation();setItemAssignee('${o.id}',${i},'');closeAssigneeMenus()">✕ הסר</div>
           </div>
-        </div>`:`<div style="margin-right:auto"></div>`}
+        </div>`:'<div style="margin-right:auto"></div>'}`
+        :`<span style="font-size:11px;padding:2px 8px;border-radius:10px;background:rgba(0,0,0,0.06);color:${sc};font-weight:600;border:1px solid ${sc}">${STATUSES[item.status]?.label||item.status}</span>
+        ${multiItems?`<div class="assignee-wrap" onclick="event.stopPropagation()" style="margin-right:auto;position:relative;z-index:10">
+          <div class="assignee-pill unassigned" style="font-size:11px;padding:2px 10px" onclick="toggleAssigneeMenu('menu-${o.id}-${i}')">
+            👤 שייך ▾
+          </div>
+          <div class="assignee-menu" id="menu-${o.id}-${i}" style="z-index:100">
+            ${ALL_USERS.map(u=>`<div class="assignee-menu-item" onclick="event.stopPropagation();setItemAssignee('${o.id}',${i},'${u}');closeAssigneeMenus()">${u==='יערית'?'👩':u==='הילה'?'👩‍💼':'👨‍💼'} ${u}</div>`).join('')}
+          </div>
+        </div>`:'<div style="margin-right:auto"></div>'}`}
           ${prevS?`<button onclick="event.stopPropagation();moveItem('${o.id}',${i},'${prevS}')" style="padding:2px 8px;border:1px solid var(--border);border-radius:6px;background:none;color:var(--text2);cursor:pointer;font-size:11px;font-family:'Rubik',sans-serif">← ${STATUSES[prevS].label}</button>`:''}
           ${nextS?`<button onclick="event.stopPropagation();moveItem('${o.id}',${i},'${nextS}')" style="padding:2px 8px;border:none;border-radius:6px;background:${STATUSES[nextS].color};color:#fff;cursor:pointer;font-size:11px;font-family:'Rubik',sans-serif">${STATUSES[nextS].label} →</button>`:''}
         </div>
