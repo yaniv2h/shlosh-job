@@ -986,6 +986,8 @@ function setAssignee(orderId, user){
   const o=orders.find(x=>x.id===orderId);if(!o)return;
   const prev=o.assignee||'לא משויך';
   o.assignee=user||null;
+  // כשיש פריט יחיד – סנכרן גם את השיוך שלו, כי התצוגה בכרטיס קוראת מהפריט
+  if((o.items||[]).length===1) o.items[0].assignee=user||null;
   o.updatedAt=new Date().toISOString();
   addLog(o,`שינה מבצע מ"${prev}" ל"${user||'לא משויך'}"`);
   saveLocal();
