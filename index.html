@@ -700,15 +700,21 @@ function renderStats(){
         : orders)
     : orders.filter(o=>o.assignee===currentUser||(o.items||[]).some(i=>i.assignee===currentUser));
 
-  // כשב"שלי" – חשב סטטוס לפי הפריטים של המשתמש בלבד
+  // כשב"כל העבודות" – ספור הזמנות לפי סטטוס הכולל שלהן
+  // כשב"שלי" – ספור לפי הפריטים של המשתמש בלבד
   const isMyView = !isAdmin || adminView==='mine';
   relevant.forEach(o=>{
-    const myItems = isMyView
-      ? (o.items||[]).filter(i=>i.assignee===currentUser)
-      : (o.items||[]);
-    if(myItems.length===0) return;
-    const s=orderStatus({...o, items:myItems});
-    if(counts[s]!==undefined)counts[s]++;
+    if(isMyView){
+      const myItems=(o.items||[]).filter(i=>i.assignee===currentUser);
+      if(myItems.length===0) return;
+      const s=orderStatus({...o, items:myItems});
+      if(counts[s]!==undefined)counts[s]++;
+    } else {
+      // כל העבודות – ספור כל פריט בנפרד לפי הסטטוס שלו
+      (o.items||[]).forEach(item=>{
+        if(counts[item.status]!==undefined) counts[item.status]++;
+      });
+    }
   });
   document.getElementById('statsBar').innerHTML=STATUS_ORDER.map(s=>{
     const info=STATUSES[s];
@@ -821,16 +827,20 @@ function renderStatusSectionsHTML(items,mode){
 function cardHTML(o, showClaimBtn=false){
   const paidBadge=`<div class="paid-badge" style="${o.paid?'background:rgba(16,185,129,0.2);color:var(--s-delivered);border:1px solid rgba(16,185,129,0.4)':'background:rgba(239,68,68,0.15);color:var(--danger);border:1px solid rgba(239,68,68,0.3)'}" onclick="event.stopPropagation();togglePaid('${o.id}')">${o.paid?'✓ שולם':'✗ לא שולם'}</div>`;
 
-  const multiItems=(o.items||[]).length>1;
+  const renderedItems=o.items||[];
+  const multiItems=renderedItems.length>1;
 
-  // שיוך להזמנה כולה – רק כשיש פריט אחד
+  // שיוך להזמנה כולה – רק כשיש פריט אחד מוצג
   const menuItems=ALL_USERS.map(u=>`<div class="assignee-menu-item${o.assignee===u?' active':''}" onclick="event.stopPropagation();setAssignee('${o.id}','${u}');closeAssigneeMenus()" style="${o.assignee===u?`color:${USER_COLORS[u]?.color};font-weight:700`:''}">${u==='יערית'?'👩':u==='הילה'?'👩‍💼':'👨‍💼'} ${u}</div>`
   ).join('')+`<div class="assignee-menu-item unassign" onclick="event.stopPropagation();setAssignee('${o.id}','');closeAssigneeMenus()">✕ הסר שיוך</div>`;
 
-  const uc=USER_COLORS[o.assignee];
+  // אם יש רק פריט אחד מוצג – הצג שיוך לפי הפריט עצמו, לא לפי ההזמנה
+  const singleItem=!multiItems&&renderedItems.length===1?renderedItems[0]:null;
+  const displayAssignee=singleItem?singleItem.assignee:o.assignee;
+  const uc=USER_COLORS[displayAssignee];
   const assigneeDropdown=!multiItems?`<div class="assignee-wrap" onclick="event.stopPropagation()">
-    <div class="assignee-pill ${o.assignee?'assigned':'unassigned'}" style="${uc?`background:${uc.bg};color:${uc.color};border-color:${uc.color}`:''}" onclick="toggleAssigneeMenu('menu-${o.id}')">
-      👤 ${o.assignee||'לא משויך'} ▾
+    <div class="assignee-pill ${displayAssignee?'assigned':'unassigned'}" style="${uc?`background:${uc.bg};color:${uc.color};border-color:${uc.color}`:''}" onclick="toggleAssigneeMenu('menu-${o.id}')">
+      👤 ${displayAssignee||'לא משויך'} ▾
     </div>
     <div class="assignee-menu" id="menu-${o.id}">${menuItems}</div>
   </div>`:'';
