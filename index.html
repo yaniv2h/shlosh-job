@@ -691,8 +691,6 @@ function renderAll(){
 let employeeView='mine'; // 'mine' | 'all'
 
 function renderStats(){
-  const counts={};
-  STATUS_ORDER.forEach(s=>counts[s]=0);
   const isAdmin=USERS[currentEmail]?.role==='admin';
   const relevant = isAdmin
     ? (adminView==='mine'
@@ -700,28 +698,42 @@ function renderStats(){
         : orders)
     : orders.filter(o=>o.assignee===currentUser||(o.items||[]).some(i=>i.assignee===currentUser));
 
-  // כשב"כל העבודות" – ספור הזמנות לפי סטטוס הכולל שלהן
-  // כשב"שלי" – ספור לפי הפריטים של המשתמש בלבד
+  const orderCounts={};
+  const itemCounts={};
+  STATUS_ORDER.forEach(s=>{orderCounts[s]=0;itemCounts[s]=0;});
+
   const isMyView = !isAdmin || adminView==='mine';
   relevant.forEach(o=>{
-    if(isMyView){
-      const myItems=(o.items||[]).filter(i=>i.assignee===currentUser);
-      if(myItems.length===0) return;
-      const s=orderStatus({...o, items:myItems});
-      if(counts[s]!==undefined)counts[s]++;
-    } else {
-      // כל העבודות – ספור כל פריט בנפרד לפי הסטטוס שלו
-      (o.items||[]).forEach(item=>{
-        if(counts[item.status]!==undefined) counts[item.status]++;
-      });
-    }
+    const itemsToCount = isMyView
+      ? (o.items||[]).filter(i=>i.assignee===currentUser)
+      : (o.items||[]);
+    const statusesSeen=new Set();
+    itemsToCount.forEach(item=>{
+      if(itemCounts[item.status]!==undefined) itemCounts[item.status]++;
+      statusesSeen.add(item.status);
+    });
+    statusesSeen.forEach(s=>{
+      if(orderCounts[s]!==undefined) orderCounts[s]++;
+    });
   });
+
   document.getElementById('statsBar').innerHTML=STATUS_ORDER.map(s=>{
     const info=STATUSES[s];
     const isActive=activeSection===s;
-    return `<div class="stat-chip" style="border-color:${isActive?info.color:'var(--border)'};${isActive?'background:rgba(79,142,247,0.06)':''}" onclick="toggleSection('${s}')">
-      <div class="stat-num" style="color:${info.color}">${counts[s]}</div>
-      <div class="stat-label">${info.label}</div>
+    const oc=orderCounts[s];
+    const ic=itemCounts[s];
+    return `<div class="stat-chip" style="border-color:${isActive?info.color:'var(--border)'};${isActive?`background:${info.color}18`:''};padding:0;overflow:hidden" onclick="toggleSection('${s}')">
+      <div style="text-align:center;padding:6px 8px 5px;font-size:12px;font-weight:700;color:${info.color};border-bottom:1px solid var(--border)">${info.label}</div>
+      <div style="display:flex">
+        <div style="flex:1;text-align:center;padding:6px 4px;border-left:1px solid var(--border)">
+          <div style="font-size:9px;color:var(--text2);margin-bottom:2px">הזמנות</div>
+          <div style="font-size:18px;font-weight:700;color:${info.color}">${oc}</div>
+        </div>
+        <div style="flex:1;text-align:center;padding:6px 4px">
+          <div style="font-size:9px;color:var(--text2);margin-bottom:2px">עבודות</div>
+          <div style="font-size:18px;font-weight:700;color:${info.color}">${ic}</div>
+        </div>
+      </div>
     </div>`;
   }).join('');
 }
@@ -808,7 +820,8 @@ function renderStatusSectionsHTML(items,mode){
   let html='';
   for(const status of statusesToShow){
     const info=STATUSES[status];
-    const group=items.filter(o=>orderStatus(o)===status).sort((a,b)=>(b.urgent?1:0)-(a.urgent?1:0));
+    // סנן הזמנות שיש בהן לפחות פריט אחד בסטטוס הזה
+    const group=items.filter(o=>(o.items||[]).some(i=>i.status===status)).sort((a,b)=>(b.urgent?1:0)-(a.urgent?1:0));
     if(!activeSection&&group.length===0)continue;
     const cols=1;
     html+=`<div style="margin-bottom:24px">
