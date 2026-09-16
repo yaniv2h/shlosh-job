@@ -512,6 +512,9 @@ const STATUSES={
   delivered:  {label:'נמסר',  color:'var(--s-delivered)',  badge:'badge-delivered'},
 };
 const STATUS_ORDER=['ordered','graphic','production','ready','delivered'];
+// סטטוסים שגלויים לכולם גם בתצוגת "שלי" (לא רק המשויכות/לא-משויכות) —
+// כי אפשר שמישהו יסיים לפני מישהו אחר וירצה למשוך עבודה נוספת
+const SHARED_STATUSES=['ordered','ready','delivered'];
 
 // ── SUPABASE ──────────────────────────────────────────
 function dbStatus(ok){
@@ -749,9 +752,9 @@ function renderAdminView(){
         ...o,
         items:(o.items||[]).filter(i=>i.assignee===currentUser)
       }));
-    renderStatusSections(mine,'admin');
+    renderStatusSections(mine,filtered,'admin');
   } else {
-    renderStatusSections(filtered,'admin');
+    renderStatusSections(filtered,filtered,'admin');
   }
 }
 
@@ -776,13 +779,13 @@ function renderEmployeeView(){
   </div>`;
 
   if(employeeView==='all'){
-    html+=renderStatusSectionsHTML(filtered,'employee-all');
+    html+=renderStatusSectionsHTML(filtered,filtered,'employee-all');
     document.getElementById('mainContent').innerHTML=html;
     return;
   }
 
   if(mine.length>0){
-    html+=renderStatusSectionsHTML(mine,'employee-mine');
+    html+=renderStatusSectionsHTML(mine,filtered,'employee-mine');
   } else {
     html+='<div class="empty-msg" style="margin-bottom:16px">אין הזמנות משויכות אליך</div>';
   }
@@ -800,17 +803,19 @@ function renderEmployeeView(){
   document.getElementById('mainContent').innerHTML=html;
 }
 
-function renderStatusSections(items,mode){
-  document.getElementById('mainContent').innerHTML=renderStatusSectionsHTML(items,mode);
+function renderStatusSections(mineItems,allItems,mode){
+  document.getElementById('mainContent').innerHTML=renderStatusSectionsHTML(mineItems,allItems,mode);
 }
 
-function renderStatusSectionsHTML(items,mode){
+function renderStatusSectionsHTML(mineItems,allItems,mode){
   const statusesToShow=activeSection?[activeSection]:STATUS_ORDER;
   let html='';
   for(const status of statusesToShow){
     const info=STATUSES[status];
+    // בסטטוסים משותפים מציגים לכולם ללא קשר לשיוך; באחרים – רק את הרשימה שלי
+    const source=SHARED_STATUSES.includes(status)?allItems:mineItems;
     // סנן הזמנות שיש בהן לפחות פריט אחד בסטטוס הזה
-    const group=items.filter(o=>(o.items||[]).some(i=>i.status===status)).sort((a,b)=>(b.urgent?1:0)-(a.urgent?1:0));
+    const group=source.filter(o=>(o.items||[]).some(i=>i.status===status)).sort((a,b)=>(b.urgent?1:0)-(a.urgent?1:0));
     if(!activeSection&&group.length===0)continue;
     // הצג בכל סקשן רק את הפריטים ששייכים לשלב של אותו סקשן
     const groupToRender=group.map(o=>({...o, items:(o.items||[]).filter(i=>i.status===status)}));
@@ -937,6 +942,10 @@ function cardHTML(o, showClaimBtn=false){
 function moveItem(orderId,itemIdx,newStatus){
   const o=orders.find(x=>x.id===orderId);if(!o)return;
   if(!o.items[itemIdx])return;
+  if(newStatus==='production'&&!o.items[itemIdx].approved){
+    showToast('⚠️ יש לאשר מול הלקוח לפני מעבר לייצור');
+    return;
+  }
   o.items[itemIdx].status=newStatus;
   if(!o.items[itemIdx].statusDates)o.items[itemIdx].statusDates={};
   o.items[itemIdx].statusDates[newStatus]=new Date().toISOString();
@@ -1089,7 +1098,7 @@ function renderItemsList(){
       <textarea onchange="formItems[${i}].notes=this.value" placeholder="הערות לעבודה זו..." style="width:100%;margin-top:6px;background:var(--surface);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:7px 10px;font-family:'Rubik',sans-serif;font-size:13px;resize:none;height:52px;direction:rtl">${esc(item.notes||'')}</textarea>
       <div style="display:flex;gap:6px;flex-wrap:wrap">
         ${STATUS_ORDER.map(s=>`
-          <button onclick="formItems[${i}].status='${s}';renderItemsList()" style="padding:4px 10px;border-radius:6px;border:1px solid ${item.status===s?STATUSES[s].color:'var(--border)'};background:${item.status===s?'rgba(0,0,0,0.06)':'none'};color:${item.status===s?STATUSES[s].color:'var(--text2)'};font-family:'Rubik',sans-serif;font-size:12px;font-weight:${item.status===s?'700':'400'};cursor:pointer">
+          <button onclick="setFormItemStatus(${i},'${s}')" style="padding:4px 10px;border-radius:6px;border:1px solid ${item.status===s?STATUSES[s].color:'var(--border)'};background:${item.status===s?'rgba(0,0,0,0.06)':'none'};color:${item.status===s?STATUSES[s].color:'var(--text2)'};font-family:'Rubik',sans-serif;font-size:12px;font-weight:${item.status===s?'700':'400'};cursor:pointer">
             ${STATUSES[s].label}
           </button>`).join('')}
       </div>
@@ -1098,6 +1107,15 @@ function renderItemsList(){
 
 function addItem(){
   formItems.push({id:`item_${Date.now()}`,type:'',qty:'',status:'ordered',assignee:'',notes:'',inReview:false,approved:false,prodSteps:{},prodNote:'',statusDates:{ordered:new Date().toISOString()}});
+  renderItemsList();
+}
+
+function setFormItemStatus(i,s){
+  if(s==='production'&&!formItems[i].approved){
+    showToast('⚠️ יש לאשר מול הלקוח לפני מעבר לייצור');
+    return;
+  }
+  formItems[i].status=s;
   renderItemsList();
 }
 
