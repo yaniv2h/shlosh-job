@@ -966,12 +966,24 @@ function saveItemProdNote(orderId,itemIdx,text){
   saveLocal();saveOrderToDB(o);
 }
 
+function setAssignee(orderId, user){
+  const o=orders.find(x=>x.id===orderId);if(!o)return;
+  const prev=o.assignee||'לא משויך';
+  o.assignee=user||null;
+  o.updatedAt=new Date().toISOString();
+  addLog(o,`שינה מבצע מ"${prev}" ל"${user||'לא משויך'}"`);
+  saveLocal();saveOrderToDB(o);
+  setTimeout(()=>renderAll(),50);
+  showToast(user?`✓ שויך ל${user}`:'✓ הוסר השיוך');
+}
+
 function setItemAssignee(orderId,itemIdx,user){
   const o=orders.find(x=>x.id===orderId);if(!o||!o.items[itemIdx])return;
   o.items[itemIdx].assignee=user||null;
   o.updatedAt=new Date().toISOString();
   addLog(o,`שייך "${o.items[itemIdx].type}" ל${user||'לא משויך'}`);
-  saveLocal();saveOrderToDB(o);renderAll();
+  saveLocal();saveOrderToDB(o);
+  setTimeout(()=>renderAll(),50);
   showToast(user?`✓ שויך ל${user}`:'✓ הוסר השיוך');
 }
 
@@ -986,16 +998,6 @@ function toggleAssigneeMenu(menuId){
 
 function closeAssigneeMenus(){
   document.querySelectorAll('.assignee-menu.open').forEach(m=>m.classList.remove('open'));
-}
-
-function setAssignee(id, user){
-  const o=orders.find(x=>x.id===id);if(!o)return;
-  const prev=o.assignee||'לא משויך';
-  o.assignee=user||null;
-  o.updatedAt=new Date().toISOString();
-  addLog(o,`שינה מבצע מ"${prev}" ל"${user||'לא משויך'}"`);
-  saveLocal();saveOrderToDB(o);renderAll();
-  showToast(user?`✓ שויך ל${user}`:'✓ הוסר השיוך');
 }
 
 function quickMove(id,newStatus){
