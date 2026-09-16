@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="he" dir="rtl">
 <head>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🖨️%3C/text%3E%3C/svg%3E">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>יומן עבודה – דפוס שלוש</title>
@@ -630,7 +631,7 @@ async function supaFetch(url,options={}){
   return r;
 }
 
-async function loadFromDB(){
+async function loadFromDB(retry=true){
   dbStatus('sync');
   try{
     const r=await supaFetch(`${SUPA_URL}/rest/v1/orders?order=created_at.desc`);
@@ -639,10 +640,15 @@ async function loadFromDB(){
     orders=data.map(fromDB);
     renderAll();
     dbStatus('ok');
-  }catch(e){dbStatus('err');showToast('⚠️ שגיאה בטעינת נתונים');}
+  }catch(e){
+    dbStatus('err');
+    // כשל זמני (למשל רשת שהתחלפה) – ננסה שוב פעם אחת אחרי 3 שניות לפני שמציגים שגיאה
+    if(retry) setTimeout(()=>loadFromDB(false),3000);
+    else showToast('⚠️ שגיאה בטעינת נתונים');
+  }
 }
 
-async function saveOrderToDB(o){
+async function saveOrderToDB(o,retry=true){
   dbStatus('sync');
   try{
     const r=await supaFetch(`${SUPA_URL}/rest/v1/orders`,{
@@ -652,15 +658,23 @@ async function saveOrderToDB(o){
     });
     if(!r.ok)throw new Error();
     dbStatus('ok');
-  }catch(e){dbStatus('err');showToast('⚠️ שגיאה בשמירה');}
+  }catch(e){
+    dbStatus('err');
+    if(retry) setTimeout(()=>saveOrderToDB(o,false),3000);
+    else showToast('⚠️ שגיאה בשמירה – נסה שוב');
+  }
 }
 
-async function deleteOrderFromDB(id){
+async function deleteOrderFromDB(id,retry=true){
   dbStatus('sync');
   try{
-    await supaFetch(`${SUPA_URL}/rest/v1/orders?id=eq.${id}`,{method:'DELETE'});
+    const r=await supaFetch(`${SUPA_URL}/rest/v1/orders?id=eq.${id}`,{method:'DELETE'});
+    if(!r.ok)throw new Error();
     dbStatus('ok');
-  }catch(e){dbStatus('err');}
+  }catch(e){
+    dbStatus('err');
+    if(retry) setTimeout(()=>deleteOrderFromDB(id,false),3000);
+  }
 }
 
 // Realtime – עדכונים בזמן אמת
