@@ -968,8 +968,9 @@ function cardHTML(o, showClaimBtn=false){
         📲 שלח הודעת וואטסאפ${o.waSentAt?` <span style="font-size:10px;opacity:0.85">(נשלח ${formatDateTime(o.waSentAt)})</span>`:''}
       </button>`:'';
 
+  const pendingStatusLabels=[...new Set(fullItems.filter(item=>item.status!=='ready'&&item.status!=='delivered').map(item=>STATUSES[item.status]?.label||item.status))];
   const partialWarning=someReadyNotAll
-    ?`<div style="margin-top:8px;padding:8px 12px;border-radius:8px;background:rgba(212,58,58,0.12);border:1px solid var(--danger);color:var(--danger);font-size:13px;font-weight:700;text-align:center">⚠️ להזמנה זו יש עוד עבודה שטרם מוכנה</div>`
+    ?`<div style="margin-top:8px;padding:8px 12px;border-radius:8px;background:rgba(212,58,58,0.12);border:1px solid var(--danger);color:var(--danger);font-size:13px;font-weight:700;text-align:center">⚠️ להזמנה זו יש עוד עבודה שטרם מוכנה (${esc(pendingStatusLabels.join(', '))})</div>`
     :'';
 
   const pickupField=allItemsDone
@@ -1004,7 +1005,9 @@ function cardHTML(o, showClaimBtn=false){
 function moveItem(orderId,itemIdx,newStatus){
   const o=orders.find(x=>x.id===orderId);if(!o)return;
   if(!o.items[itemIdx])return;
-  if(newStatus==='production'&&!o.items[itemIdx].approved){
+  const curIdx=STATUS_ORDER.indexOf(o.items[itemIdx].status);
+  const newIdx=STATUS_ORDER.indexOf(newStatus);
+  if(newStatus==='production'&&newIdx>curIdx&&!o.items[itemIdx].approved){
     showToast('⚠️ יש לאשר מול הלקוח לפני מעבר לייצור');
     return;
   }
@@ -1182,7 +1185,9 @@ function addItem(){
 }
 
 function setFormItemStatus(i,s){
-  if(s==='production'&&!formItems[i].approved){
+  const curIdx=STATUS_ORDER.indexOf(formItems[i].status);
+  const newIdx=STATUS_ORDER.indexOf(s);
+  if(s==='production'&&newIdx>curIdx&&!formItems[i].approved){
     showToast('⚠️ יש לאשר מול הלקוח לפני מעבר לייצור');
     return;
   }
