@@ -699,7 +699,17 @@ function renderStats(){
         ? orders.filter(o=>o.assignee===currentUser||(o.items||[]).some(i=>i.assignee===currentUser))
         : orders)
     : orders.filter(o=>o.assignee===currentUser||(o.items||[]).some(i=>i.assignee===currentUser));
-  relevant.forEach(o=>{const s=orderStatus(o);if(counts[s]!==undefined)counts[s]++;});
+
+  // כשב"שלי" – חשב סטטוס לפי הפריטים של המשתמש בלבד
+  const isMyView = !isAdmin || adminView==='mine';
+  relevant.forEach(o=>{
+    const myItems = isMyView
+      ? (o.items||[]).filter(i=>i.assignee===currentUser)
+      : (o.items||[]);
+    if(myItems.length===0) return;
+    const s=orderStatus({...o, items:myItems});
+    if(counts[s]!==undefined)counts[s]++;
+  });
   document.getElementById('statsBar').innerHTML=STATUS_ORDER.map(s=>{
     const info=STATUSES[s];
     const isActive=activeSection===s;
