@@ -246,6 +246,10 @@
       <button class="view-tab active" id="tabMine" onclick="setAdminView('all')">כל העבודות</button>
       <button class="view-tab" id="tabAll" onclick="setAdminView('mine')">שלי</button>
     </div>
+    <div class="view-tabs" id="employeeTabs" style="display:none">
+      <button class="view-tab active" id="empTabMine" onclick="setEmployeeView('mine')">שלי</button>
+      <button class="view-tab" id="empTabAll" onclick="setEmployeeView('all')">כל העבודות</button>
+    </div>
     <button class="btn btn-ghost btn-sm" id="settingsBtn" onclick="openSettings()" style="display:none">⚙️ הגדרות</button>
     <button class="btn btn-ghost btn-sm" onclick="logout()">החלף משתמש</button>
     <button class="btn btn-primary" onclick="openNewModal()">+ הזמנה חדשה</button>
@@ -443,6 +447,7 @@ function finishLogin(){
   const isAdmin=USERS[currentEmail]?.role==='admin';
   document.getElementById('settingsBtn').style.display=isAdmin?'flex':'none';
   document.getElementById('adminTabs').style.display=isAdmin?'flex':'none';
+  document.getElementById('employeeTabs').style.display=isAdmin?'none':'flex';
   loadLocal();
   loadFromDB();
   initRealtime();
@@ -471,6 +476,13 @@ function setAdminView(v){
   // update tab labels
   document.getElementById('tabMine').textContent=v==='all'?'כל העבודות':'כל העבודות';
   document.getElementById('tabAll').textContent=v==='mine'?'שלי':'שלי';
+  renderAll();
+}
+
+function setEmployeeView(v){
+  employeeView=v;
+  document.getElementById('empTabMine').classList.toggle('active',v==='mine');
+  document.getElementById('empTabAll').classList.toggle('active',v==='all');
   renderAll();
 }
 
@@ -540,6 +552,7 @@ function fromDB(r){
     assignee:r.assignee||null,
     urgent:!!r.urgent, paid:!!r.paid,
     log:r.log||[], waSentAt:r.wa_sent_at||null,
+    pickupInfo:r.pickup_info||'',
     createdAt:r.created_at, updatedAt:r.updated_at
   };
 }
@@ -567,6 +580,7 @@ function toDB(o){
     prod_steps:firstItem.prodSteps||{}, prod_note:firstItem.prodNote||null,
     status_dates:firstItem.statusDates||{},
     log:o.log||[], wa_sent_at:o.waSentAt||null,
+    pickup_info:o.pickupInfo||null,
     items:o.items||[],
     created_at:o.createdAt, updated_at:o.updatedAt
   };
@@ -772,23 +786,13 @@ function renderEmployeeView(){
   );
   let html='';
 
-  // כפתורי מעבר תצוגה לעובדת
-  html+=`<div style="display:flex;gap:8px;margin-bottom:20px">
-    <button onclick="employeeView='mine';renderAll()" style="padding:8px 18px;border-radius:20px;border:1px solid var(--border);background:${employeeView==='mine'?'linear-gradient(135deg,var(--accent),var(--accent2))':'var(--surface)'};color:${employeeView==='mine'?'#1a1a2e':'var(--text2)'};font-family:'Rubik',sans-serif;font-size:13px;font-weight:600;cursor:pointer">שלי</button>
-    <button onclick="employeeView='all';renderAll()" style="padding:8px 18px;border-radius:20px;border:1px solid var(--border);background:${employeeView==='all'?'linear-gradient(135deg,var(--accent),var(--accent2))':'var(--surface)'};color:${employeeView==='all'?'#1a1a2e':'var(--text2)'};font-family:'Rubik',sans-serif;font-size:13px;font-weight:600;cursor:pointer">כל העבודות</button>
-  </div>`;
-
   if(employeeView==='all'){
     html+=renderStatusSectionsHTML(filtered,filtered,'employee-all');
     document.getElementById('mainContent').innerHTML=html;
     return;
   }
 
-  if(mine.length>0){
-    html+=renderStatusSectionsHTML(mine,filtered,'employee-mine');
-  } else {
-    html+='<div class="empty-msg" style="margin-bottom:16px">אין הזמנות משויכות אליך</div>';
-  }
+  html+=renderStatusSectionsHTML(mine,filtered,'employee-mine');
 
   if(unassigned.length>0){
     html+=`<div class="section-divider">
@@ -835,6 +839,12 @@ function renderStatusSectionsHTML(mineItems,allItems,mode){
 }
 
 function cardHTML(o, showClaimBtn=false){
+  // ההזמנה המלאה (לפני כל סינון פריטים לפי סקשן) – כדי לבדוק מוכנות אמיתית על כל הפריטים
+  const fullOrder=orders.find(x=>x.id===o.id)||o;
+  const fullItems=fullOrder.items||[];
+  const allItemsDone=fullItems.length>0&&fullItems.every(item=>item.status==='ready'||item.status==='delivered');
+  const someReadyNotAll=!allItemsDone&&fullItems.some(item=>item.status==='ready'||item.status==='delivered');
+
   const paidBadge=`<div class="paid-badge" style="${o.paid?'background:rgba(16,185,129,0.2);color:var(--s-delivered);border:1px solid rgba(16,185,129,0.4)':'background:rgba(239,68,68,0.15);color:var(--danger);border:1px solid rgba(239,68,68,0.3)'}" onclick="event.stopPropagation();togglePaid('${o.id}')">${o.paid?'✓ שולם':'✗ לא שולם'}</div>`;
 
   const renderedItems=o.items||[];
@@ -905,20 +915,28 @@ function cardHTML(o, showClaimBtn=false){
           ${prevS?`<button onclick="event.stopPropagation();moveItem('${o.id}',${i},'${prevS}')" style="padding:2px 8px;border:1px solid var(--border);border-radius:6px;background:none;color:var(--text2);cursor:pointer;font-size:11px;font-family:'Rubik',sans-serif">← ${STATUSES[prevS].label}</button>`:''}
           ${nextS?`<button onclick="event.stopPropagation();moveItem('${o.id}',${i},'${nextS}')" style="padding:2px 8px;border:none;border-radius:6px;background:${STATUSES[nextS].color};color:#fff;cursor:pointer;font-size:11px;font-family:'Rubik',sans-serif">${STATUSES[nextS].label} →</button>`:''}
         </div>
-      </div>
       ${item.notes?`<div style="font-size:12px;color:var(--text2);margin-top:6px;padding:5px 8px;background:var(--surface);border-radius:6px">${esc(item.notes)}</div>`:''}
       ${graphicHTML}${stepsHTML}
     </div>`;
   }).join('');
 
-  const allReady=(o.items||[]).length>0&&(o.items||[]).every(item=>item.status==='ready'||item.status==='delivered');
-  const waBtn=allReady&&o.phone
+  const waBtn=allItemsDone&&o.phone
     ?`<button onclick="event.stopPropagation();sendWhatsAppDirect('${esc(o.phone)}','${esc(o.customer)}')"
         style="width:100%;margin-top:8px;padding:9px;border:none;border-radius:8px;background:#25d366;color:#fff;font-family:'Rubik',sans-serif;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px">
         📲 שלח הודעת וואטסאפ${o.waSentAt?` <span style="font-size:10px;opacity:0.85">(נשלח ${formatDateTime(o.waSentAt)})</span>`:''}
       </button>`:'';
 
-  return `<div class="card" onclick="openEdit('${o.id}')" style="border:2px solid ${o.urgent?'var(--danger)':'var(--border)'};${o.urgent?'background:rgba(212,58,58,0.04)':'background:var(--surface)'}">
+  const partialWarning=someReadyNotAll
+    ?`<div style="margin-top:8px;padding:8px 12px;border-radius:8px;background:rgba(212,58,58,0.12);border:1px solid var(--danger);color:var(--danger);font-size:13px;font-weight:700;text-align:center">⚠️ להזמנה זו יש עוד עבודה שטרם מוכנה</div>`
+    :'';
+
+  const pickupField=allItemsDone
+    ?`<div onclick="event.stopPropagation()" style="margin-top:8px">
+        <label style="font-size:11px;color:var(--text2);display:block;margin-bottom:4px">מי אסף / שליח / משלוח</label>
+        <input type="text" value="${esc(fullOrder.pickupInfo||'')}" onchange="savePickupInfo('${o.id}',this.value)" placeholder="שם האוסף / שליח..." style="width:100%;background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:6px 10px;font-family:'Rubik',sans-serif;font-size:12px">
+      </div>`:'';
+
+  return `<div class="card" onclick="openEdit('${o.id}')" style="border:3px solid ${o.urgent?'var(--danger)':'var(--border)'};${o.urgent?'background:rgba(212,58,58,0.04)':'background:var(--surface)'}">
     <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px">
       <div>
         <div style="font-size:17px;font-weight:700">${o.urgent?'🚨 ':''}${esc(o.customer)}</div>
@@ -934,6 +952,8 @@ function cardHTML(o, showClaimBtn=false){
     <div style="display:flex;flex-direction:column;gap:8px;border-top:1px solid var(--border);padding-top:10px;margin-top:2px">
       ${itemsHTML}
     </div>
+    ${partialWarning}
+    ${pickupField}
     ${waBtn}
   </div>`;
 }
@@ -1034,6 +1054,15 @@ function togglePaid(id){
   addLog(o,o.paid?'סימן כשולם':'סימן כלא שולם');
   saveLocal();saveOrderToDB(o);renderAll();
   showToast(o.paid?'✅ סומן כשולם':'✗ סומן כלא שולם');
+}
+
+function savePickupInfo(orderId,text){
+  const o=orders.find(x=>x.id===orderId);if(!o)return;
+  o.pickupInfo=text.trim();
+  o.updatedAt=new Date().toISOString();
+  addLog(o,`עדכן פרטי איסוף/משלוח: ${o.pickupInfo||'(נמחק)'}`);
+  saveLocal();saveOrderToDB(o);
+  showToast('✓ פרטי איסוף נשמרו');
 }
 
 function toggleSubstep(id,field){
