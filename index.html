@@ -296,20 +296,9 @@
         <div id="itemsList"></div>
         <button type="button" onclick="addItem()" style="margin-top:8px;width:100%;padding:8px;border:1px dashed var(--accent);border-radius:8px;background:rgba(201,168,76,0.05);color:var(--accent);font-family:'Rubik',sans-serif;font-size:13px;font-weight:600;cursor:pointer">+ הוסף פריט</button>
       </div>
-      <div class="form-row">
-        <div class="form-group">
-          <label>מספר הזמנה / הצעה</label>
-          <input type="text" id="f_orderNum" placeholder="#1234">
-        </div>
-        <div class="form-group">
-          <label>מבצע</label>
-          <select id="f_assignee">
-            <option value="">לא משויך</option>
-            <option value="יערית">יערית</option>
-            <option value="הילה">הילה</option>
-            <option value="יניב">יניב</option>
-          </select>
-        </div>
+      <div class="form-group">
+        <label>מספר הזמנה / הצעה</label>
+        <input type="text" id="f_orderNum" placeholder="#1234">
       </div>
       <div class="form-group"><label>הערות</label><textarea id="f_notes" placeholder="תיאור העבודה, פרטים מיוחדים..."></textarea></div>
       <div style="display:flex;gap:10px;flex-wrap:wrap">
@@ -1098,10 +1087,6 @@ function renderItemsList(){
         ${formItems.length>1?`<button onclick="removeItem(${i})" style="border:none;background:none;color:var(--danger);cursor:pointer;font-size:16px;padding:4px">✕</button>`:''}
       </div>
       <textarea onchange="formItems[${i}].notes=this.value" placeholder="הערות לעבודה זו..." style="width:100%;margin-top:6px;background:var(--surface);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:7px 10px;font-family:'Rubik',sans-serif;font-size:13px;resize:none;height:52px;direction:rtl">${esc(item.notes||'')}</textarea>
-      <select onchange="formItems[${i}].assignee=this.value" style="width:100%;margin-top:6px;background:var(--surface);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:7px 10px;font-family:'Rubik',sans-serif;font-size:13px">
-        <option value="">👤 מבצע – לא משויך</option>
-        ${ALL_USERS.map(u=>`<option value="${u}"${item.assignee===u?' selected':''}>${u==='יערית'?'👩':u==='הילה'?'👩‍💼':'👨‍💼'} ${u}</option>`).join('')}
-      </select>
       <div style="display:flex;gap:6px;flex-wrap:wrap">
         ${STATUS_ORDER.map(s=>`
           <button onclick="formItems[${i}].status='${s}';renderItemsList()" style="padding:4px 10px;border-radius:6px;border:1px solid ${item.status===s?STATUSES[s].color:'var(--border)'};background:${item.status===s?'rgba(0,0,0,0.06)':'none'};color:${item.status===s?STATUSES[s].color:'var(--text2)'};font-family:'Rubik',sans-serif;font-size:12px;font-weight:${item.status===s?'700':'400'};cursor:pointer">
@@ -1124,15 +1109,12 @@ function removeItem(i){
 function onTypeChange(){}
 function onReviewChange(){}
 function onApprovedChange(){}
-function assignToMe(){document.getElementById('f_assignee').value=currentUser;}
-function unassign(){document.getElementById('f_assignee').value='';}
 function selectStatus(s){currentStatus=s;}
 
 function openNewModal(){
   editingId=null;
   document.getElementById('modalTitle').textContent='הזמנה חדשה';
   ['f_customer','f_phone','f_orderNum','f_notes'].forEach(id=>document.getElementById(id).value='');
-  document.getElementById('f_assignee').value=currentUser||'';
   document.getElementById('f_urgent').checked=false;
   document.getElementById('f_paid').checked=false;
   document.getElementById('logSection').style.display='none';
@@ -1153,7 +1135,6 @@ function openEdit(id){
   document.getElementById('f_phone').value=o.phone||'';
   document.getElementById('f_orderNum').value=o.orderNum||'';
   document.getElementById('f_notes').value=o.notes||'';
-  document.getElementById('f_assignee').value=o.assignee||'';
   document.getElementById('f_urgent').checked=!!o.urgent;
   document.getElementById('f_paid').checked=!!o.paid;
   formItems=JSON.parse(JSON.stringify(o.items||[]));
@@ -1201,7 +1182,8 @@ function saveOrder(){
     phone:document.getElementById('f_phone').value.trim(),
     orderNum:document.getElementById('f_orderNum').value.trim(),
     notes:document.getElementById('f_notes').value.trim(),
-    assignee:document.getElementById('f_assignee').value||null,
+    // שיוך ברמת ההזמנה נגזר מהפריט – רק כשיש פריט יחיד. השינוי עצמו נעשה רק מהמסך הראשי.
+    assignee:formItems.length===1?(formItems[0].assignee||null):null,
     urgent:document.getElementById('f_urgent').checked,
     paid:document.getElementById('f_paid').checked,
     items:formItems,
