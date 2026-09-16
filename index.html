@@ -537,6 +537,14 @@ function dbStatus(ok){
   else{dot.style.background='var(--danger)';lbl.textContent='שגיאת חיבור';}
 }
 
+// תג הסטטוס בראש הדף בפועל מציג את מצב החיבור ל-Supabase (לא Google Drive בפועל) –
+// לחיצה עליו פשוט מציגה את הסטטוס הנוכחי, ובמצב שגיאה מנסה לרענן נתונים
+function handleDriveClick(){
+  const lbl=document.getElementById('driveLabel').textContent;
+  showToast(`סטטוס חיבור: ${lbl}`);
+  if(lbl==='שגיאת חיבור') loadFromDB();
+}
+
 // המרת שורת DB → אובייקט פנימי
 function fromDB(r){
   return {
@@ -586,10 +594,46 @@ function toDB(o){
   };
 }
 
+// חידוש טוקן אוטומטי כשהוא פג תוקף
+async function refreshSupaToken(){
+  const refresh=localStorage.getItem('supa_refresh');
+  if(!refresh)return false;
+  try{
+    const r=await fetch(`${SUPA_URL}/auth/v1/token?grant_type=refresh_token`,{
+      method:'POST',
+      headers:{'Content-Type':'application/json','apikey':SUPA_KEY},
+      body:JSON.stringify({refresh_token:refresh})
+    });
+    const d=await r.json();
+    if(d.access_token){
+      localStorage.setItem('supa_token',d.access_token);
+      localStorage.setItem('supa_refresh',d.refresh_token||refresh);
+      SUPA_HEADERS['Authorization']=`Bearer ${d.access_token}`;
+      return true;
+    }
+  }catch(e){}
+  return false;
+}
+
+// עטיפת fetch לכל בקשה ל-Supabase: אם מתקבל 401 (טוקן פג), מנסה לחדש טוקן ולנסות שוב פעם אחת
+async function supaFetch(url,options={}){
+  let r=await fetch(url,{...options,headers:{...SUPA_HEADERS,...(options.headers||{})}});
+  if(r.status===401){
+    const refreshed=await refreshSupaToken();
+    if(refreshed){
+      r=await fetch(url,{...options,headers:{...SUPA_HEADERS,...(options.headers||{})}});
+    }else{
+      showToast('⚠️ פג תוקף החיבור – יש להתחבר מחדש');
+      setTimeout(()=>logout(),1500);
+    }
+  }
+  return r;
+}
+
 async function loadFromDB(){
   dbStatus('sync');
   try{
-    const r=await fetch(`${SUPA_URL}/rest/v1/orders?order=created_at.desc`,{headers:SUPA_HEADERS});
+    const r=await supaFetch(`${SUPA_URL}/rest/v1/orders?order=created_at.desc`);
     if(!r.ok)throw new Error();
     const data=await r.json();
     orders=data.map(fromDB);
@@ -601,9 +645,9 @@ async function loadFromDB(){
 async function saveOrderToDB(o){
   dbStatus('sync');
   try{
-    const r=await fetch(`${SUPA_URL}/rest/v1/orders`,{
+    const r=await supaFetch(`${SUPA_URL}/rest/v1/orders`,{
       method:'POST',
-      headers:{...SUPA_HEADERS,'Prefer':'resolution=merge-duplicates'},
+      headers:{'Prefer':'resolution=merge-duplicates'},
       body:JSON.stringify(toDB(o))
     });
     if(!r.ok)throw new Error();
@@ -614,7 +658,7 @@ async function saveOrderToDB(o){
 async function deleteOrderFromDB(id){
   dbStatus('sync');
   try{
-    await fetch(`${SUPA_URL}/rest/v1/orders?id=eq.${id}`,{method:'DELETE',headers:SUPA_HEADERS});
+    await supaFetch(`${SUPA_URL}/rest/v1/orders?id=eq.${id}`,{method:'DELETE'});
     dbStatus('ok');
   }catch(e){dbStatus('err');}
 }
@@ -698,29 +742,26 @@ let employeeView='mine'; // 'mine' | 'all'
 
 function renderStats(){
   const isAdmin=USERS[currentEmail]?.role==='admin';
-  const relevant = isAdmin
-    ? (adminView==='mine'
-        ? orders.filter(o=>o.assignee===currentUser||(o.items||[]).some(i=>i.assignee===currentUser))
-        : orders)
-    : orders.filter(o=>o.assignee===currentUser||(o.items||[]).some(i=>i.assignee===currentUser));
+  const isMyView=isAdmin?adminView==='mine':employeeView==='mine';
+  // הזמנות שיש בהן משהו משויך אליי
+  const mineSet=orders.filter(o=>o.assignee===currentUser||(o.items||[]).some(i=>i.assignee===currentUser));
 
   const orderCounts={};
   const itemCounts={};
-  STATUS_ORDER.forEach(s=>{orderCounts[s]=0;itemCounts[s]=0;});
-
-  const isMyView = !isAdmin || adminView==='mine';
-  relevant.forEach(o=>{
-    const itemsToCount = isMyView
-      ? (o.items||[]).filter(i=>i.assignee===currentUser)
-      : (o.items||[]);
-    const statusesSeen=new Set();
-    itemsToCount.forEach(item=>{
-      if(itemCounts[item.status]!==undefined) itemCounts[item.status]++;
-      statusesSeen.add(item.status);
+  STATUS_ORDER.forEach(status=>{
+    // בסטטוסים משותפים סופרים תמיד מכולם, גם בתצוגת "שלי" – בהתאמה לרשימה שמוצגת בפועל
+    const source=(isMyView&&!SHARED_STATUSES.includes(status))?mineSet:orders;
+    let oc=0,ic=0;
+    source.forEach(o=>{
+      const items=(o.items||[]).filter(i=>{
+        if(i.status!==status)return false;
+        if(isMyView&&!SHARED_STATUSES.includes(status)&&i.assignee!==currentUser)return false;
+        return true;
+      });
+      if(items.length>0){oc++;ic+=items.length;}
     });
-    statusesSeen.forEach(s=>{
-      if(orderCounts[s]!==undefined) orderCounts[s]++;
-    });
+    orderCounts[status]=oc;
+    itemCounts[status]=ic;
   });
 
   document.getElementById('statsBar').innerHTML=STATUS_ORDER.map(s=>{
@@ -843,6 +884,7 @@ function cardHTML(o, showClaimBtn=false){
   const fullOrder=orders.find(x=>x.id===o.id)||o;
   const fullItems=fullOrder.items||[];
   const allItemsDone=fullItems.length>0&&fullItems.every(item=>item.status==='ready'||item.status==='delivered');
+  const allDelivered=fullItems.length>0&&fullItems.every(item=>item.status==='delivered');
   const someReadyNotAll=!allItemsDone&&fullItems.some(item=>item.status==='ready'||item.status==='delivered');
 
   const paidBadge=`<div class="paid-badge" style="${o.paid?'background:rgba(16,185,129,0.2);color:var(--s-delivered);border:1px solid rgba(16,185,129,0.4)':'background:rgba(239,68,68,0.15);color:var(--danger);border:1px solid rgba(239,68,68,0.3)'}" onclick="event.stopPropagation();togglePaid('${o.id}')">${o.paid?'✓ שולם':'✗ לא שולם'}</div>`;
@@ -920,7 +962,7 @@ function cardHTML(o, showClaimBtn=false){
     </div>`;
   }).join('');
 
-  const waBtn=allItemsDone&&o.phone
+  const waBtn=allItemsDone&&!allDelivered&&o.phone
     ?`<button onclick="event.stopPropagation();sendWhatsAppDirect('${esc(o.phone)}','${esc(o.customer)}')"
         style="width:100%;margin-top:8px;padding:9px;border:none;border-radius:8px;background:#25d366;color:#fff;font-family:'Rubik',sans-serif;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px">
         📲 שלח הודעת וואטסאפ${o.waSentAt?` <span style="font-size:10px;opacity:0.85">(נשלח ${formatDateTime(o.waSentAt)})</span>`:''}
@@ -936,12 +978,12 @@ function cardHTML(o, showClaimBtn=false){
         <input type="text" value="${esc(fullOrder.pickupInfo||'')}" onchange="savePickupInfo('${o.id}',this.value)" placeholder="שם האוסף / שליח..." style="width:100%;background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:6px 10px;font-family:'Rubik',sans-serif;font-size:12px">
       </div>`:'';
 
-  return `<div class="card" onclick="openEdit('${o.id}')" style="border:3px solid ${o.urgent?'var(--danger)':'var(--border)'};${o.urgent?'background:rgba(212,58,58,0.04)':'background:var(--surface)'}">
+  return `<div class="card" onclick="openEdit('${o.id}')" style="border:3px solid ${o.urgent?'var(--danger)':'#000'};${o.urgent?'background:rgba(212,58,58,0.04)':'background:var(--surface)'}">
     <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px">
       <div>
         <div style="font-size:17px;font-weight:700">${o.urgent?'🚨 ':''}${esc(o.customer)}</div>
         ${o.orderNum?`<div style="font-size:12px;color:var(--text2);margin-top:2px">${esc(o.orderNum)}</div>`:''}
-        ${o.phone?`<div style="font-size:13px;margin-top:2px"><a href="tel:${esc(o.phone)}" onclick="event.stopPropagation()" style="color:var(--accent);text-decoration:none">📞 ${esc(o.phone)}</a></div>`:''}
+        ${o.phone?`<div style="font-size:13px;margin-top:2px;color:var(--accent)">📞 ${esc(o.phone)}</div>`:''}
       </div>
       <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">
         ${paidBadge}
@@ -1189,7 +1231,8 @@ function openEdit(id){
   const isAdmin=USERS[currentEmail]?.role==='admin';
   document.getElementById('deleteBtn').style.display=isAdmin?'inline-flex':'none';
   const allReady=(o.items||[]).every(item=>item.status==='ready'||item.status==='delivered');
-  document.getElementById('waBtn').style.display=(allReady&&o.phone)?'flex':'none';
+  const allDeliveredEdit=(o.items||[]).length>0&&(o.items||[]).every(item=>item.status==='delivered');
+  document.getElementById('waBtn').style.display=(allReady&&!allDeliveredEdit&&o.phone)?'flex':'none';
   if(o.waSentAt){
     document.getElementById('waSentBadge').style.display='flex';
     document.getElementById('waSentTime').textContent=formatDateTime(o.waSentAt);
@@ -1289,7 +1332,7 @@ async function changePassword(){
 function clearAll(){
   if(!confirm('למחוק את כל הנתונים?'))return;
   orders=[];saveLocal();
-  fetch(`${SUPA_URL}/rest/v1/orders`,{method:'DELETE',headers:{...SUPA_HEADERS,'Prefer':'return=minimal'}}).then(()=>renderAll());
+  supaFetch(`${SUPA_URL}/rest/v1/orders`,{method:'DELETE',headers:{'Prefer':'return=minimal'}}).then(()=>renderAll());
   document.getElementById('settingsModal').classList.remove('open');
   showToast('🗑 כל הנתונים נמחקו');
 }
