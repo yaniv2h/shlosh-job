@@ -695,8 +695,10 @@ function renderStats(){
   STATUS_ORDER.forEach(s=>counts[s]=0);
   const isAdmin=USERS[currentEmail]?.role==='admin';
   const relevant = isAdmin
-    ? (adminView==='mine' ? orders.filter(o=>o.assignee===currentUser) : orders)
-    : orders.filter(o=>o.assignee===currentUser);
+    ? (adminView==='mine'
+        ? orders.filter(o=>o.assignee===currentUser||(o.items||[]).some(i=>i.assignee===currentUser))
+        : orders)
+    : orders.filter(o=>o.assignee===currentUser||(o.items||[]).some(i=>i.assignee===currentUser));
   relevant.forEach(o=>{const s=orderStatus(o);if(counts[s]!==undefined)counts[s]++;});
   document.getElementById('statsBar').innerHTML=STATUS_ORDER.map(s=>{
     const info=STATUSES[s];
@@ -722,16 +724,29 @@ function toggleSection(s){activeSection=activeSection===s?null:s;renderAll();}
 // מנהל – רואה הכל
 function renderAdminView(){
   const filtered=getFiltered();
-  const toShow=adminView==='mine'?filtered.filter(o=>o.assignee===currentUser):filtered;
-  renderStatusSections(toShow,'admin');
+  if(adminView==='mine'){
+    // מסנן הזמנות שיש בהן לפחות פריט של המשתמש, ומציג רק את הפריטים שלו
+    const mine=filtered
+      .filter(o=>o.assignee===currentUser||(o.items||[]).some(i=>i.assignee===currentUser))
+      .map(o=>({
+        ...o,
+        items:(o.items||[]).filter(i=>i.assignee===currentUser)
+      }));
+    renderStatusSections(mine,'admin');
+  } else {
+    renderStatusSections(filtered,'admin');
+  }
 }
 
 // עובד – הזמנות שלי + לא משויכות
 function renderEmployeeView(){
   const filtered=getFiltered();
-  const mine=filtered.filter(o=>
-    o.assignee===currentUser || (o.items||[]).some(i=>i.assignee===currentUser)
-  );
+  const mine=filtered
+    .filter(o=>o.assignee===currentUser||(o.items||[]).some(i=>i.assignee===currentUser))
+    .map(o=>({
+      ...o,
+      items:(o.items||[]).filter(i=>i.assignee===currentUser)
+    }));
   const unassigned=filtered.filter(o=>
     !o.assignee && !(o.items||[]).some(i=>i.assignee) && o.status!=='delivered'
   );
