@@ -538,7 +538,7 @@ const STATUSES={
   delivered:  {label:'נמסר',  color:'var(--s-delivered)',  badge:'badge-delivered'},
 };
 // גרסת האפליקציה - מתעדכנת בכל פעם שמעלים קובץ חדש, כדי לדעת בוודאות שהעדכון נטען
-const APP_VERSION='2026-09-17.3';
+const APP_VERSION='2026-09-17.4';
 
 const STATUS_ORDER=['ordered','graphic','production','ready','delivered'];
 // סטטוסים שגלויים לכולם גם בתצוגת "שלי" (לא רק המשויכות/לא-משויכות) —
@@ -933,7 +933,10 @@ function cardHTML(o, showClaimBtn=false){
   const paidBadge=`<div class="paid-badge" style="${o.paid?'background:rgba(16,185,129,0.2);color:var(--s-delivered);border:1px solid rgba(16,185,129,0.4)':'background:rgba(239,68,68,0.15);color:var(--danger);border:1px solid rgba(239,68,68,0.3)'}" onclick="event.stopPropagation();togglePaid('${o.id}')">${o.paid?'✓ שולם':'✗ לא שולם'}</div>`;
 
   const renderedItems=o.items||[];
-  const multiItems=renderedItems.length>1;
+  // חשוב: על בסיס כל הפריטים בהזמנה (fullItems), לא רק מה שמוצג בסקשן הנוכחי –
+  // אחרת הזמנה עם 2 פריטים בסטטוסים שונים תיראה כ"פריט יחיד" בכל כרטיס בנפרד,
+  // וזה יגרום לשיוך להתבצע ברמת ההזמנה (setAssignee) במקום ברמת הפריט הנכון (setItemAssignee)
+  const multiItems=fullItems.length>1;
 
   // שיוך להזמנה כולה – רק כשיש פריט אחד מוצג
   const menuItems=ALL_USERS.map(u=>`<div class="assignee-menu-item${o.assignee===u?' active':''}" onclick="event.stopPropagation();setAssignee('${o.id}','${u}');closeAssigneeMenus()" style="${o.assignee===u?`color:${USER_COLORS[u]?.color};font-weight:700`:''}">${u==='יערית'?'👩':u==='הילה'?'👩‍💼':'👨‍💼'} ${u}</div>`
