@@ -392,6 +392,7 @@
 </div>
 
 <div id="toast"></div>
+<div id="appVersionTag" style="position:fixed;bottom:6px;left:10px;font-size:11px;color:var(--text2);opacity:0.6;z-index:1;pointer-events:none;font-family:'Rubik',sans-serif"></div>
 
 <script>
 const USERS={
@@ -536,6 +537,9 @@ const STATUSES={
   ready:      {label:'מוכן',   color:'var(--s-ready)',      badge:'badge-ready'},
   delivered:  {label:'נמסר',  color:'var(--s-delivered)',  badge:'badge-delivered'},
 };
+// גרסת האפליקציה - מתעדכנת בכל פעם שמעלים קובץ חדש, כדי לדעת בוודאות שהעדכון נטען
+const APP_VERSION='2026-09-17.1';
+
 const STATUS_ORDER=['ordered','graphic','production','ready','delivered'];
 // סטטוסים שגלויים לכולם גם בתצוגת "שלי" (לא רק המשויכות/לא-משויכות) —
 // כי אפשר שמישהו יסיים לפני מישהו אחר וירצה למשוך עבודה נוספת
@@ -1048,7 +1052,7 @@ function moveItem(orderId,itemId,newStatus){
   const curIdx=STATUS_ORDER.indexOf(o.items[itemIdx].status);
   const newIdx=STATUS_ORDER.indexOf(newStatus);
   if(newStatus==='production'&&newIdx>curIdx&&!o.items[itemIdx].approved){
-    showToast('⚠️ יש לאשר מול הלקוח לפני מעבר לייצור');
+    showStatusAlert(['⚠️ יש לאשר מול הלקוח לפני מעבר לייצור']);
     return;
   }
   const movedItemId=o.items[itemIdx].id;
@@ -1063,7 +1067,7 @@ function moveItem(orderId,itemId,newStatus){
   // תזכורת תשלום / עבודה נוספת בהזמנה - כשעוברים ל"מוכן" או "נמסר"
   if(newStatus==='ready'||newStatus==='delivered'){
     const lines=[];
-    if(!o.paid) lines.push('💰 שימו לב: ההזמנה הזו עדיין <b>לא סומנה כשולמה</b>');
+    if(!o.paid) lines.push('💰 שימו לב: ההזמנה הזו עדיין <b>לא שולמה</b>');
     const others=(o.items||[]).filter(it=>it.id!==movedItemId);
     const pendingOthers=newStatus==='ready'
       ? others.filter(it=>it.status!=='ready'&&it.status!=='delivered')
@@ -1260,7 +1264,7 @@ function setFormItemStatus(i,s){
   const curIdx=STATUS_ORDER.indexOf(formItems[i].status);
   const newIdx=STATUS_ORDER.indexOf(s);
   if(s==='production'&&newIdx>curIdx&&!formItems[i].approved){
-    showToast('⚠️ יש לאשר מול הלקוח לפני מעבר לייצור');
+    showStatusAlert(['⚠️ יש לאשר מול הלקוח לפני מעבר לייצור']);
     return;
   }
   formItems[i].status=s;
@@ -1438,6 +1442,7 @@ document.addEventListener('click',()=>closeAssigneeMenus());
 
 // בדוק session בטעינה
 checkSession();
+document.getElementById('appVersionTag').textContent=`v${APP_VERSION}`;
 </script>
 </body>
 </html>
