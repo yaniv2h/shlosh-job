@@ -548,21 +548,30 @@ function handleDriveClick(){
 
 // המרת שורת DB → אובייקט פנימי
 function fromDB(r){
+  // תאימות אחורה – אם אין items, בנה פריט אחד מהשדות הישנים
+  const items=(r.items&&r.items.length>0)?r.items:[{
+    id:'item_0', type:r.type||'', status:r.status||'ordered',
+    qty:'', inReview:!!r.in_review, approved:!!r.approved,
+    prodSteps:r.prod_steps||{}, prodNote:r.prod_note||'',
+    statusDates:r.status_dates||{}
+  }];
+  // תיקון מזהי פריטים כפולים/חסרים מנתונים ישנים (באג שגרם לשני פריטים לקבל אותו id)
+  let idsFixed=false;
+  const seenIds=new Set();
+  items.forEach(it=>{
+    if(!it.id||seenIds.has(it.id)){it.id=genItemId();idsFixed=true;}
+    seenIds.add(it.id);
+  });
   return {
     id:r.id, customer:r.customer, phone:r.phone||'',
     orderNum:r.order_num||'', notes:r.notes||'',
-    // תאימות אחורה – אם אין items, בנה פריט אחד מהשדות הישנים
-    items: (r.items&&r.items.length>0) ? r.items : [{
-      id:'item_0', type:r.type||'', status:r.status||'ordered',
-      qty:'', inReview:!!r.in_review, approved:!!r.approved,
-      prodSteps:r.prod_steps||{}, prodNote:r.prod_note||'',
-      statusDates:r.status_dates||{}
-    }],
+    items,
     assignee:r.assignee||null,
     urgent:!!r.urgent, paid:!!r.paid,
     log:r.log||[], waSentAt:r.wa_sent_at||null,
     pickupInfo:r.pickup_info||'',
-    createdAt:r.created_at, updatedAt:r.updated_at
+    createdAt:r.created_at, updatedAt:r.updated_at,
+    _idsFixed:idsFixed
   };
 }
 
@@ -640,6 +649,8 @@ async function loadFromDB(retry=true){
     orders=data.map(fromDB);
     renderAll();
     dbStatus('ok');
+    // שמור מחדש הזמנות שבהן תוקנו מזהי פריטים כפולים, כדי שהתיקון יישאר קבוע
+    orders.filter(o=>o._idsFixed).forEach(o=>{delete o._idsFixed;saveOrderToDB(o);});
   }catch(e){
     dbStatus('err');
     // כשל זמני (למשל רשת שהתחלפה) – ננסה שוב פעם אחת אחרי 3 שניות לפני שמציגים שגיאה
@@ -1180,6 +1191,9 @@ function sendWhatsAppDirect(phone,customer){
 
 // ── MODAL ─────────────────────────────────────────────
 let formItems=[]; // פריטים בטופס
+let itemIdCounter=0;
+// מזהה ייחודי לחלוטין לפריט - לא מסתמך רק על חותמת זמן כדי למנוע התנגשות בין פריטים שנוצרים כמעט באותו רגע
+function genItemId(){return `item_${Date.now()}_${itemIdCounter++}`;}
 
 function renderItemsList(){
   document.getElementById('itemsList').innerHTML=formItems.map((item,i)=>`
@@ -1203,7 +1217,7 @@ function renderItemsList(){
 }
 
 function addItem(){
-  formItems.push({id:`item_${Date.now()}`,type:'',qty:'',status:'ordered',assignee:'',notes:'',inReview:false,approved:false,prodSteps:{},prodNote:'',statusDates:{ordered:new Date().toISOString()}});
+  formItems.push({id:genItemId(),type:'',qty:'',status:'ordered',assignee:'',notes:'',inReview:false,approved:false,prodSteps:{},prodNote:'',statusDates:{ordered:new Date().toISOString()}});
   renderItemsList();
 }
 
@@ -1238,7 +1252,7 @@ function openNewModal(){
   document.getElementById('deleteBtn').style.display='none';
   document.getElementById('waBtn').style.display='none';
   document.getElementById('waSentBadge').style.display='none';
-  formItems=[{id:`item_${Date.now()}`,type:'',qty:'',status:'ordered',assignee:'',notes:'',inReview:false,approved:false,prodSteps:{},prodNote:'',statusDates:{ordered:new Date().toISOString()}}];
+  formItems=[{id:genItemId(),type:'',qty:'',status:'ordered',assignee:'',notes:'',inReview:false,approved:false,prodSteps:{},prodNote:'',statusDates:{ordered:new Date().toISOString()}}];
   renderItemsList();
   document.getElementById('orderModal').classList.add('open');
   setTimeout(()=>document.getElementById('f_customer').focus(),100);
