@@ -929,15 +929,15 @@ function cardHTML(o, showClaimBtn=false){
     const stepsHTML=showProd?`<div class="prod-steps" style="margin-top:6px">${
       prodStepsList.map(step=>{
         const done=!!(item.prodSteps||{})[step];
-        return `<div class="prod-step${done?' done':''}" onclick="event.stopPropagation();toggleItemProdStep('${o.id}',${i},'${step}')">
+        return `<div class="prod-step${done?' done':''}" onclick="event.stopPropagation();toggleItemProdStep('${o.id}','${item.id}','${step}')">
           <div class="prod-step-check">${done?'✓':''}</div><span style="flex:1">${step}</span></div>`;
       }).join('')
-    }<textarea onclick="event.stopPropagation()" onblur="saveItemProdNote('${o.id}',${i},this.value)" placeholder="הערה..."
+    }<textarea onclick="event.stopPropagation()" onblur="saveItemProdNote('${o.id}','${item.id}',this.value)" placeholder="הערה..."
       style="width:100%;margin-top:4px;background:var(--surface);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:5px 8px;font-family:'Rubik',sans-serif;font-size:11px;resize:none;height:44px;direction:rtl">${esc(item.prodNote||'')}</textarea></div>`:'';
 
     const graphicHTML=isGraphic?`<div class="substeps" style="margin-top:6px">
-      <button class="substep-btn ${item.inReview?'on-review':'off'}" onclick="event.stopPropagation();toggleItemSubstep('${o.id}',${i},'inReview')">${item.inReview?'🔍 בהגהה':'🔍 הגהה'}</button>
-      <button class="substep-btn ${item.approved?'on-approved':'off'}" onclick="event.stopPropagation();toggleItemSubstep('${o.id}',${i},'approved')">${item.approved?'✅ אושר':'✅ אישור'}</button>
+      <button class="substep-btn ${item.inReview?'on-review':'off'}" onclick="event.stopPropagation();toggleItemSubstep('${o.id}','${item.id}','inReview')">${item.inReview?'🔍 בהגהה':'🔍 הגהה'}</button>
+      <button class="substep-btn ${item.approved?'on-approved':'off'}" onclick="event.stopPropagation();toggleItemSubstep('${o.id}','${item.id}','approved')">${item.approved?'✅ אושר':'✅ אישור'}</button>
     </div>`:'';
 
     const si=STATUS_ORDER.indexOf(item.status);
@@ -951,25 +951,25 @@ function cardHTML(o, showClaimBtn=false){
         ${item.qty?`<span style="font-size:12px;color:var(--text2)">× ${esc(item.qty)}</span>`:''}
         ${item.assignee?`<span style="font-size:11px;padding:2px 8px;border-radius:10px;background:rgba(0,0,0,0.06);color:${sc};font-weight:600;border:1px solid ${sc}">${STATUSES[item.status]?.label||item.status}</span>
         ${multiItems?`<div class="assignee-wrap" onclick="event.stopPropagation()" style="margin-right:auto;position:relative;z-index:10">
-          <div class="assignee-pill assigned" style="font-size:11px;padding:2px 10px;background:${USER_COLORS[item.assignee]?.bg||'rgba(168,85,247,0.12)'};color:${USER_COLORS[item.assignee]?.color||'var(--s-graphic)'};border-color:${USER_COLORS[item.assignee]?.color||'var(--s-graphic)'}" onclick="toggleAssigneeMenu('menu-${o.id}-${i}')">
+          <div class="assignee-pill assigned" style="font-size:11px;padding:2px 10px;background:${USER_COLORS[item.assignee]?.bg||'rgba(168,85,247,0.12)'};color:${USER_COLORS[item.assignee]?.color||'var(--s-graphic)'};border-color:${USER_COLORS[item.assignee]?.color||'var(--s-graphic)'}" onclick="toggleAssigneeMenu('menu-${o.id}-${item.id}')">
             👤 ${item.assignee} ▾
           </div>
-          <div class="assignee-menu" id="menu-${o.id}-${i}" style="z-index:100">
-            ${ALL_USERS.map(u=>`<div class="assignee-menu-item${item.assignee===u?' active':''}" onclick="event.stopPropagation();setItemAssignee('${o.id}',${i},'${u}');closeAssigneeMenus()" style="${item.assignee===u?`color:${USER_COLORS[u]?.color};font-weight:700`:''}">${u==='יערית'?'👩':u==='הילה'?'👩‍💼':'👨‍💼'} ${u}</div>`).join('')}
-            <div class="assignee-menu-item unassign" onclick="event.stopPropagation();setItemAssignee('${o.id}',${i},'');closeAssigneeMenus()">✕ הסר</div>
+          <div class="assignee-menu" id="menu-${o.id}-${item.id}" style="z-index:100">
+            ${ALL_USERS.map(u=>`<div class="assignee-menu-item${item.assignee===u?' active':''}" onclick="event.stopPropagation();setItemAssignee('${o.id}','${item.id}','${u}');closeAssigneeMenus()" style="${item.assignee===u?`color:${USER_COLORS[u]?.color};font-weight:700`:''}">${u==='יערית'?'👩':u==='הילה'?'👩‍💼':'👨‍💼'} ${u}</div>`).join('')}
+            <div class="assignee-menu-item unassign" onclick="event.stopPropagation();setItemAssignee('${o.id}','${item.id}','');closeAssigneeMenus()">✕ הסר</div>
           </div>
         </div>`:'<div style="margin-right:auto"></div>'}`
         :`<span style="font-size:11px;padding:2px 8px;border-radius:10px;background:rgba(0,0,0,0.06);color:${sc};font-weight:600;border:1px solid ${sc}">${STATUSES[item.status]?.label||item.status}</span>
         ${multiItems?`<div class="assignee-wrap" onclick="event.stopPropagation()" style="margin-right:auto;position:relative;z-index:10">
-          <div class="assignee-pill unassigned" style="font-size:11px;padding:2px 10px" onclick="toggleAssigneeMenu('menu-${o.id}-${i}')">
+          <div class="assignee-pill unassigned" style="font-size:11px;padding:2px 10px" onclick="toggleAssigneeMenu('menu-${o.id}-${item.id}')">
             👤 שייך ▾
           </div>
-          <div class="assignee-menu" id="menu-${o.id}-${i}" style="z-index:100">
-            ${ALL_USERS.map(u=>`<div class="assignee-menu-item" onclick="event.stopPropagation();setItemAssignee('${o.id}',${i},'${u}');closeAssigneeMenus()">${u==='יערית'?'👩':u==='הילה'?'👩‍💼':'👨‍💼'} ${u}</div>`).join('')}
+          <div class="assignee-menu" id="menu-${o.id}-${item.id}" style="z-index:100">
+            ${ALL_USERS.map(u=>`<div class="assignee-menu-item" onclick="event.stopPropagation();setItemAssignee('${o.id}','${item.id}','${u}');closeAssigneeMenus()">${u==='יערית'?'👩':u==='הילה'?'👩‍💼':'👨‍💼'} ${u}</div>`).join('')}
           </div>
         </div>`:'<div style="margin-right:auto"></div>'}`}
-          ${prevS?`<button onclick="event.stopPropagation();moveItem('${o.id}',${i},'${prevS}')" style="padding:2px 8px;border:1px solid var(--border);border-radius:6px;background:none;color:var(--text2);cursor:pointer;font-size:11px;font-family:'Rubik',sans-serif">← ${STATUSES[prevS].label}</button>`:''}
-          ${nextS?`<button onclick="event.stopPropagation();moveItem('${o.id}',${i},'${nextS}')" style="padding:2px 8px;border:none;border-radius:6px;background:${STATUSES[nextS].color};color:#fff;cursor:pointer;font-size:11px;font-family:'Rubik',sans-serif">${STATUSES[nextS].label} →</button>`:''}
+          ${prevS?`<button onclick="event.stopPropagation();moveItem('${o.id}','${item.id}','${prevS}')" style="padding:2px 8px;border:1px solid var(--border);border-radius:6px;background:none;color:var(--text2);cursor:pointer;font-size:11px;font-family:'Rubik',sans-serif">← ${STATUSES[prevS].label}</button>`:''}
+          ${nextS?`<button onclick="event.stopPropagation();moveItem('${o.id}','${item.id}','${nextS}')" style="padding:2px 8px;border:none;border-radius:6px;background:${STATUSES[nextS].color};color:#fff;cursor:pointer;font-size:11px;font-family:'Rubik',sans-serif">${STATUSES[nextS].label} →</button>`:''}
         </div>
       ${item.notes?`<div style="font-size:12px;color:var(--text2);margin-top:6px;padding:5px 8px;background:var(--surface);border-radius:6px">${esc(item.notes)}</div>`:''}
       ${graphicHTML}${stepsHTML}
@@ -1016,9 +1016,10 @@ function cardHTML(o, showClaimBtn=false){
 }
 
 // ── ACTIONS ───────────────────────────────────────────
-function moveItem(orderId,itemIdx,newStatus){
+function moveItem(orderId,itemId,newStatus){
   const o=orders.find(x=>x.id===orderId);if(!o)return;
-  if(!o.items[itemIdx])return;
+  const itemIdx=(o.items||[]).findIndex(x=>x.id===itemId);
+  if(itemIdx===-1)return;
   const curIdx=STATUS_ORDER.indexOf(o.items[itemIdx].status);
   const newIdx=STATUS_ORDER.indexOf(newStatus);
   if(newStatus==='production'&&newIdx>curIdx&&!o.items[itemIdx].approved){
@@ -1034,8 +1035,10 @@ function moveItem(orderId,itemIdx,newStatus){
   showToast(`✓ ${STATUSES[newStatus].label}`);
 }
 
-function toggleItemSubstep(orderId,itemIdx,field){
-  const o=orders.find(x=>x.id===orderId);if(!o||!o.items[itemIdx])return;
+function toggleItemSubstep(orderId,itemId,field){
+  const o=orders.find(x=>x.id===orderId);if(!o)return;
+  const itemIdx=(o.items||[]).findIndex(x=>x.id===itemId);
+  if(itemIdx===-1)return;
   const item=o.items[itemIdx];
   if(field==='approved'&&!item.approved){item.inReview=false;item.approved=true;}
   else if(field==='inReview'&&item.approved){item.approved=false;item.inReview=true;}
@@ -1044,8 +1047,10 @@ function toggleItemSubstep(orderId,itemIdx,field){
   saveLocal();saveOrderToDB(o);renderAll();
 }
 
-function toggleItemProdStep(orderId,itemIdx,step){
-  const o=orders.find(x=>x.id===orderId);if(!o||!o.items[itemIdx])return;
+function toggleItemProdStep(orderId,itemId,step){
+  const o=orders.find(x=>x.id===orderId);if(!o)return;
+  const itemIdx=(o.items||[]).findIndex(x=>x.id===itemId);
+  if(itemIdx===-1)return;
   if(!o.items[itemIdx].prodSteps)o.items[itemIdx].prodSteps={};
   o.items[itemIdx].prodSteps[step]=!o.items[itemIdx].prodSteps[step];
   o.updatedAt=new Date().toISOString();
@@ -1053,8 +1058,10 @@ function toggleItemProdStep(orderId,itemIdx,step){
   saveLocal();saveOrderToDB(o);renderAll();
 }
 
-function saveItemProdNote(orderId,itemIdx,text){
-  const o=orders.find(x=>x.id===orderId);if(!o||!o.items[itemIdx])return;
+function saveItemProdNote(orderId,itemId,text){
+  const o=orders.find(x=>x.id===orderId);if(!o)return;
+  const itemIdx=(o.items||[]).findIndex(x=>x.id===itemId);
+  if(itemIdx===-1)return;
   o.items[itemIdx].prodNote=text.trim();
   saveLocal();saveOrderToDB(o);
 }
@@ -1072,8 +1079,10 @@ function setAssignee(orderId, user){
   showToast(user?`✓ שויך ל${user}`:'✓ הוסר השיוך');
 }
 
-function setItemAssignee(orderId,itemIdx,user){
-  const o=orders.find(x=>x.id===orderId);if(!o||!o.items[itemIdx])return;
+function setItemAssignee(orderId,itemId,user){
+  const o=orders.find(x=>x.id===orderId);if(!o)return;
+  const itemIdx=(o.items||[]).findIndex(x=>x.id===itemId);
+  if(itemIdx===-1)return;
   o.items[itemIdx].assignee=user||null;
   o.updatedAt=new Date().toISOString();
   addLog(o,`שייך "${o.items[itemIdx].type}" ל${user||'לא משויך'}`);
