@@ -379,6 +379,18 @@
   </div>
 </div>
 
+<div class="overlay" id="statusAlertModal">
+  <div class="modal" style="max-width:380px">
+    <div class="modal-header">
+      <h2>⚠️ שימו לב</h2>
+    </div>
+    <div style="padding:20px">
+      <div id="statusAlertBody" style="font-size:15px;line-height:1.8;color:var(--text)"></div>
+      <button class="btn btn-primary" onclick="document.getElementById('statusAlertModal').classList.remove('open')" style="width:100%;justify-content:center;margin-top:16px;padding:12px;font-size:15px">אישור</button>
+    </div>
+  </div>
+</div>
+
 <div id="toast"></div>
 
 <script>
@@ -1039,6 +1051,7 @@ function moveItem(orderId,itemId,newStatus){
     showToast('⚠️ יש לאשר מול הלקוח לפני מעבר לייצור');
     return;
   }
+  const movedItemId=o.items[itemIdx].id;
   o.items[itemIdx].status=newStatus;
   if(!o.items[itemIdx].statusDates)o.items[itemIdx].statusDates={};
   o.items[itemIdx].statusDates[newStatus]=new Date().toISOString();
@@ -1046,6 +1059,26 @@ function moveItem(orderId,itemId,newStatus){
   addLog(o,`פריט "${o.items[itemIdx].type}" → ${STATUSES[newStatus].label}`);
   saveLocal();saveOrderToDB(o);renderAll();
   showToast(`✓ ${STATUSES[newStatus].label}`);
+
+  // תזכורת תשלום / עבודה נוספת בהזמנה - כשעוברים ל"מוכן" או "נמסר"
+  if(newStatus==='ready'||newStatus==='delivered'){
+    const lines=[];
+    if(!o.paid) lines.push('💰 שימו לב: ההזמנה הזו עדיין <b>לא סומנה כשולמה</b>');
+    const others=(o.items||[]).filter(it=>it.id!==movedItemId);
+    const pendingOthers=newStatus==='ready'
+      ? others.filter(it=>it.status!=='ready'&&it.status!=='delivered')
+      : others.filter(it=>it.status!=='delivered');
+    if(pendingOthers.length){
+      const labels=[...new Set(pendingOthers.map(it=>STATUSES[it.status]?.label||it.status))];
+      lines.push(`📦 בהזמנה זו יש עוד עבודה שנמצאת ב: ${esc(labels.join(', '))}`);
+    }
+    if(lines.length) showStatusAlert(lines);
+  }
+}
+
+function showStatusAlert(lines){
+  document.getElementById('statusAlertBody').innerHTML=lines.map(l=>`<div style="margin-bottom:10px">${l}</div>`).join('');
+  document.getElementById('statusAlertModal').classList.add('open');
 }
 
 function toggleItemSubstep(orderId,itemId,field){
