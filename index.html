@@ -910,7 +910,9 @@ function cardHTML(o, showClaimBtn=false){
   const fullItems=fullOrder.items||[];
   const allItemsDone=fullItems.length>0&&fullItems.every(item=>item.status==='ready'||item.status==='delivered');
   const allDelivered=fullItems.length>0&&fullItems.every(item=>item.status==='delivered');
-  const someReadyNotAll=!allItemsDone&&fullItems.some(item=>item.status==='ready'||item.status==='delivered');
+  // מצב הפריטים ה"אחרים" בהזמנה - כל פריט שלא מוצג בכרטיס הנוכחי (למשל, בסקשן אחר)
+  const shownItemIds=new Set((o.items||[]).map(it=>it.id));
+  const otherItems=fullItems.filter(it=>!shownItemIds.has(it.id));
 
   const paidBadge=`<div class="paid-badge" style="${o.paid?'background:rgba(16,185,129,0.2);color:var(--s-delivered);border:1px solid rgba(16,185,129,0.4)':'background:rgba(239,68,68,0.15);color:var(--danger);border:1px solid rgba(239,68,68,0.3)'}" onclick="event.stopPropagation();togglePaid('${o.id}')">${o.paid?'✓ שולם':'✗ לא שולם'}</div>`;
 
@@ -993,9 +995,9 @@ function cardHTML(o, showClaimBtn=false){
         📲 שלח הודעת וואטסאפ${o.waSentAt?` <span style="font-size:10px;opacity:0.85">(נשלח ${formatDateTime(o.waSentAt)})</span>`:''}
       </button>`:'';
 
-  const pendingStatusLabels=[...new Set(fullItems.filter(item=>item.status!=='ready'&&item.status!=='delivered').map(item=>STATUSES[item.status]?.label||item.status))];
-  const partialWarning=someReadyNotAll
-    ?`<div style="margin-top:8px;padding:8px 12px;border-radius:8px;background:rgba(212,58,58,0.12);border:1px solid var(--danger);color:var(--danger);font-size:13px;font-weight:700;text-align:center">⚠️ להזמנה זו יש עוד עבודה שטרם מוכנה (${esc(pendingStatusLabels.join(', '))})</div>`
+  const otherStatusLabels=otherItems.map(it=>STATUSES[it.status]?.label||it.status);
+  const crossItemNote=(otherItems.length>0)
+    ?`<div style="margin-top:8px;padding:8px 12px;border-radius:8px;background:rgba(212,58,58,0.12);border:1px solid var(--danger);color:var(--danger);font-size:13px;font-weight:700;text-align:center">ℹ️ בהזמנה זו יש גם עבודה נוספת (${esc(otherStatusLabels.join(', '))})</div>`
     :'';
 
   const pickupField=allItemsDone
@@ -1020,7 +1022,7 @@ function cardHTML(o, showClaimBtn=false){
     <div style="display:flex;flex-direction:column;gap:8px;border-top:1px solid var(--border);padding-top:10px;margin-top:2px">
       ${itemsHTML}
     </div>
-    ${partialWarning}
+    ${crossItemNote}
     ${pickupField}
     ${waBtn}
   </div>`;
