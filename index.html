@@ -539,7 +539,7 @@ const STATUSES={
   delivered:  {label:'נמסר',  color:'var(--s-delivered)',  badge:'badge-delivered'},
 };
 // גרסת האפליקציה - מתעדכנת בכל פעם שמעלים קובץ חדש, כדי לדעת בוודאות שהעדכון נטען
-const APP_VERSION='2026-09-17.5';
+const APP_VERSION='2026-09-17.6';
 
 const STATUS_ORDER=['ordered','graphic','production','ready','delivered'];
 // סטטוסים שגלויים לכולם גם בתצוגת "שלי" (לא רק המשויכות/לא-משויכות) —
@@ -1055,6 +1055,7 @@ function cardHTML(o, showClaimBtn=false){
         </div>`:'<div style="margin-right:auto"></div>'}`}
           ${prevS?`<button onclick="event.stopPropagation();moveItem('${o.id}','${item.id}','${prevS}')" style="padding:2px 8px;border:1px solid var(--border);border-radius:6px;background:none;color:var(--text2);cursor:pointer;font-size:13px;font-family:'Rubik',sans-serif">← ${STATUSES[prevS].label}</button>`:''}
           ${nextS?`<button onclick="event.stopPropagation();moveItem('${o.id}','${item.id}','${nextS}')" style="padding:2px 8px;border:none;border-radius:6px;background:${STATUSES[nextS].color};color:#fff;cursor:pointer;font-size:13px;font-family:'Rubik',sans-serif">${STATUSES[nextS].label} →</button>`:''}
+          <button onclick="event.stopPropagation();toggleOutsourced('${o.id}','${item.id}')" style="padding:2px 8px;border:1px solid ${item.outsourced?'#f0ad4e':'var(--border)'};border-radius:6px;background:${item.outsourced?'#fff3cd':'none'};color:${item.outsourced?'#7a5200':'var(--text2)'};cursor:pointer;font-size:13px;font-family:'Rubik',sans-serif">🚚 ${item.outsourced?'חזר מספק':'יצא לספק'}</button>
         </div>
       ${item.notes?`<div style="font-size:14px;color:var(--text2);margin-top:6px;padding:5px 8px;background:var(--surface);border-radius:6px">${esc(item.notes)}</div>`:''}
       ${graphicHTML}${stepsHTML}
@@ -1070,6 +1071,12 @@ function cardHTML(o, showClaimBtn=false){
   const otherStatusLabels=otherItems.map(it=>STATUSES[it.status]?.label||it.status);
   const crossItemNote=(otherItems.length>0)
     ?`<div style="margin-top:8px;padding:8px 12px;border-radius:8px;background:rgba(212,58,58,0.12);border:1px solid var(--danger);color:var(--danger);font-size:15px;font-weight:700;text-align:center">ℹ️ בהזמנה זו יש גם עבודה נוספת (${esc(otherStatusLabels.join(', '))})</div>`
+    :'';
+
+  // באנר בולט לעבודת חוץ - כשלפחות פריט אחד המוצג בכרטיס הזה נמצא כרגע אצל ספק חיצוני
+  const outsourcedShown=(o.items||[]).filter(it=>it.outsourced);
+  const outsourceBanner=outsourcedShown.length
+    ?`<div style="margin-top:8px;padding:12px 14px;border-radius:8px;background:#fff3cd;border:2px solid #f0ad4e;color:#7a5200;font-size:18px;font-weight:800;text-align:center">🚚 בחוץ אצל ספק${outsourcedShown.some(it=>it.outsourceSupplier)?': '+esc(outsourcedShown.map(it=>it.outsourceSupplier).filter(Boolean).join(', ')):''}</div>`
     :'';
 
   const pickupField=allItemsDone
@@ -1098,6 +1105,7 @@ function cardHTML(o, showClaimBtn=false){
       ${itemsHTML}
     </div>
     ${crossItemNote}
+    ${outsourceBanner}
     ${pickupField}
     ${waBtn}
   </div>`;
@@ -1116,6 +1124,10 @@ function moveItem(orderId,itemId,newStatus){
   }
   if(newStatus==='graphic'&&newIdx>curIdx&&!o.items[itemIdx].assignee){
     showStatusAlert(['⚠️ יש לשייך את העבודה למישהו לפני מעבר לגרפיקה']);
+    return;
+  }
+  if(newStatus==='ready'&&newIdx>curIdx&&o.items[itemIdx].outsourced){
+    showStatusAlert([`🚚 העבודה עדיין בחוץ אצל ספק (${esc(o.items[itemIdx].outsourceSupplier||'לא צוין')}) - לא ניתן לסמן כמוכן לפני שהיא חוזרת`]);
     return;
   }
   const movedItemId=o.items[itemIdx].id;
@@ -1246,6 +1258,30 @@ function toggleFrozen(orderId){
   showToast(o.frozen?'❄️ ההזמנה הוקפאה':'🔥 ההקפאה בוטלה');
 }
 
+function toggleOutsourced(orderId,itemId){
+  const o=orders.find(x=>x.id===orderId);if(!o)return;
+  const idx=(o.items||[]).findIndex(x=>x.id===itemId);
+  if(idx===-1)return;
+  const item=o.items[idx];
+  if(!item.outsourced){
+    const supplier=prompt('שם הספק החיצוני:','');
+    if(supplier===null)return; // בוטל
+    item.outsourced=true;
+    item.outsourceSupplier=supplier.trim();
+    item.outsourceSentAt=new Date().toISOString();
+    addLog(o,`שלח "${item.type}" לספק חוץ${item.outsourceSupplier?': '+item.outsourceSupplier:''}`);
+    showToast('🚚 סומן כיצא לספק חוץ');
+  }else{
+    addLog(o,`"${item.type}" חזר מספק חוץ${item.outsourceSupplier?' ('+item.outsourceSupplier+')':''}`);
+    item.outsourced=false;
+    item.outsourceSupplier='';
+    item.outsourceSentAt=null;
+    showToast('✓ סומן כחזר מהספק');
+  }
+  o.updatedAt=new Date().toISOString();
+  saveLocal();saveOrderToDB(o);renderAll();
+}
+
 function savePickupInfo(orderId,text){
   const o=orders.find(x=>x.id===orderId);if(!o)return;
   o.pickupInfo=text.trim();
@@ -1341,6 +1377,10 @@ function setFormItemStatus(i,s){
   }
   if(s==='graphic'&&newIdx>curIdx&&!formItems[i].assignee){
     showStatusAlert(['⚠️ יש לשייך את העבודה למישהו לפני מעבר לגרפיקה']);
+    return;
+  }
+  if(s==='ready'&&newIdx>curIdx&&formItems[i].outsourced){
+    showStatusAlert([`🚚 העבודה עדיין בחוץ אצל ספק (${esc(formItems[i].outsourceSupplier||'לא צוין')}) - לא ניתן לסמן כמוכן לפני שהיא חוזרת`]);
     return;
   }
   formItems[i].status=s;
