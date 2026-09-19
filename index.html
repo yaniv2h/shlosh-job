@@ -270,6 +270,9 @@
     <button class="type-filter-btn" data-val="פלוטר" onclick="setTypeFilter(this,'פלוטר')">פלוטר</button>
     <button class="type-filter-btn" data-val="לייזר" onclick="setTypeFilter(this,'לייזר')">לייזר</button>
     <button class="type-filter-btn" data-val="גרפיקה" onclick="setTypeFilter(this,'גרפיקה')">גרפיקה</button>
+    <button class="type-filter-btn" data-val="עבודות חוץ" onclick="setTypeFilter(this,'עבודות חוץ')">עבודות חוץ</button>
+    <button class="type-filter-btn" data-val="חיתוך A3" onclick="setTypeFilter(this,'חיתוך A3')">חיתוך A3</button>
+    <button class="type-filter-btn" data-val="פלוטר חותך" onclick="setTypeFilter(this,'פלוטר חותך')">פלוטר חותך</button>
   </div>
   <button class="btn btn-ghost btn-sm" id="tableViewToggle" onclick="toggleTableView()" style="margin-right:auto">📋 תצוגת טבלה</button>
 </div>
@@ -281,6 +284,7 @@
   </div>
   <div style="position:relative;z-index:1">
     <div class="stats-bar" id="statsBar"></div>
+    <div id="outsourceStatBar"></div>
     <div id="mainContent"></div>
   </div>
 </div>
@@ -539,7 +543,7 @@ const STATUSES={
   delivered:  {label:'נמסר',  color:'var(--s-delivered)',  badge:'badge-delivered'},
 };
 // גרסת האפליקציה - מתעדכנת בכל פעם שמעלים קובץ חדש, כדי לדעת בוודאות שהעדכון נטען
-const APP_VERSION='2026-09-17.7';
+const APP_VERSION='2026-09-17.8';
 
 const STATUS_ORDER=['ordered','graphic','production','ready','delivered'];
 // סטטוסים שגלויים לכולם גם בתצוגת "שלי" (לא רק המשויכות/לא-משויכות) —
@@ -789,33 +793,55 @@ function toggleTableView(){
   viewMode=viewMode==='cards'?'table':'cards';
   document.getElementById('tableViewToggle').textContent=viewMode==='table'?'🗂 תצוגת כרטיסים':'📋 תצוגת טבלה';
   document.getElementById('statsBar').style.display=viewMode==='table'?'none':'';
+  document.getElementById('outsourceStatBar').style.display=viewMode==='table'?'none':'';
   renderAll();
 }
 
+let tableSortKey='createdAt';
+let tableSortDir='desc';
+
+function setTableSort(key){
+  if(tableSortKey===key) tableSortDir=tableSortDir==='asc'?'desc':'asc';
+  else{tableSortKey=key;tableSortDir='asc';}
+  renderTableView();
+}
+
 function renderTableView(){
-  const filtered=getFiltered().slice().sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt));
+  const filtered=getFiltered().slice();
+  const dir=tableSortDir==='asc'?1:-1;
+  const typesOf=o=>[...new Set((o.items||[]).map(it=>it.type).filter(Boolean))].join(', ');
+  const statusOf=o=>[...new Set((o.items||[]).map(it=>STATUSES[it.status]?.label||it.status))].join(', ');
+  filtered.sort((a,b)=>{
+    switch(tableSortKey){
+      case 'customer': return (a.customer||'').localeCompare(b.customer||'','he')*dir;
+      case 'types': return typesOf(a).localeCompare(typesOf(b),'he')*dir;
+      case 'status': return (STATUS_ORDER.indexOf(orderStatus(a))-STATUS_ORDER.indexOf(orderStatus(b)))*dir;
+      case 'paid': return ((a.paid?1:0)-(b.paid?1:0))*dir;
+      default: return (new Date(a.createdAt)-new Date(b.createdAt))*dir;
+    }
+  });
   const td='padding:10px 12px;border-bottom:1px solid var(--border);font-size:15px;text-align:right';
   const rows=filtered.map(o=>{
-    const types=[...new Set((o.items||[]).map(it=>it.type).filter(Boolean))].join(', ')||'—';
-    const statusLabels=[...new Set((o.items||[]).map(it=>STATUSES[it.status]?.label||it.status))].join(', ')||'—';
     return `<tr onclick="openEdit('${o.id}')" style="cursor:pointer">
       <td style="${td};font-weight:700">${esc(o.customer)}</td>
       <td style="${td}">${formatDate(o.createdAt)}</td>
-      <td style="${td}">${esc(types)}</td>
-      <td style="${td}">${esc(statusLabels)}</td>
+      <td style="${td}">${esc(typesOf(o)||'—')}</td>
+      <td style="${td}">${esc(statusOf(o)||'—')}</td>
       <td style="${td}">${o.paid?'✅ שולם':'❌ לא שולם'}</td>
     </tr>`;
   }).join('');
+  const arrow=key=>tableSortKey===key?(tableSortDir==='asc'?' ▲':' ▼'):'';
+  const th=(key,label)=>`<th onclick="setTableSort('${key}')" style="${td};font-size:14px;color:var(--text2);cursor:pointer;user-select:none;white-space:nowrap">${label}${arrow(key)}</th>`;
   document.getElementById('mainContent').innerHTML=`
     <div style="overflow-x:auto;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm)">
       <table style="width:100%;border-collapse:collapse">
         <thead>
           <tr style="background:var(--surface2)">
-            <th style="${td};font-size:14px;color:var(--text2)">שם לקוח</th>
-            <th style="${td};font-size:14px;color:var(--text2)">תאריך הזמנה</th>
-            <th style="${td};font-size:14px;color:var(--text2)">סוג עבודות</th>
-            <th style="${td};font-size:14px;color:var(--text2)">סטטוס עבודה</th>
-            <th style="${td};font-size:14px;color:var(--text2)">שולם?</th>
+            ${th('customer','שם לקוח')}
+            ${th('createdAt','תאריך הזמנה')}
+            ${th('types','סוג עבודות')}
+            ${th('status','סטטוס עבודה')}
+            ${th('paid','שולם?')}
           </tr>
         </thead>
         <tbody>${rows||`<tr><td colspan="5" style="padding:24px;text-align:center;color:var(--text2)">אין הזמנות</td></tr>`}</tbody>
@@ -868,6 +894,15 @@ function renderStats(){
       </div>
     </div>`;
   }).join('');
+
+  // קוביה קטנה נפרדת - סה"כ פריטים שכרגע בחוץ אצל ספק (בכל ההזמנות, ללא קשר לתצוגת שלי/הכל)
+  const outCount=orders.reduce((n,o)=>n+(o.items||[]).filter(it=>it.outsourceSupplier&&!it.outsourceReceived).length,0);
+  const outBar=document.getElementById('outsourceStatBar');
+  if(outBar){
+    outBar.innerHTML=outCount>0
+      ?`<div style="margin-top:8px;display:inline-flex;align-items:center;gap:8px;padding:6px 14px;border-radius:20px;background:#fff3cd;border:1px solid #f0ad4e;color:#7a5200;font-size:14px;font-weight:700">🏭 עבודות חוץ: ${outCount}</div>`
+      :'';
+  }
 }
 
 let activeTypeFilter='';
@@ -1391,7 +1426,7 @@ function renderItemsList(){
       <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">
         <select onchange="formItems[${i}].type=this.value;renderItemsList()" style="flex:2;background:var(--surface);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:7px 10px;font-family:'Rubik',sans-serif;font-size:15px">
           <option value="">בחר סוג...</option>
-          ${['צבעוני','שחור לבן','פלוטר','לייזר','גרפיקה'].map(t=>`<option${item.type===t?' selected':''}>${t}</option>`).join('')}
+          ${['צבעוני','שחור לבן','פלוטר','לייזר','גרפיקה','עבודות חוץ','חיתוך A3','פלוטר חותך'].map(t=>`<option${item.type===t?' selected':''}>${t}</option>`).join('')}
         </select>
         <input type="text" value="${esc(item.qty||'')}" onchange="formItems[${i}].qty=this.value" placeholder="כמות" style="flex:1;background:var(--surface);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:7px 10px;font-family:'Rubik',sans-serif;font-size:15px">
         ${formItems.length>1?`<button onclick="removeItem(${i})" style="border:none;background:none;color:var(--danger);cursor:pointer;font-size:18px;padding:4px">✕</button>`:''}
