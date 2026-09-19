@@ -279,9 +279,6 @@
 
 <!-- MAIN -->
 <div class="main">
-  <div style="position:fixed;inset:0;pointer-events:none;z-index:2;display:flex;align-items:center;justify-content:center;top:60px">
-    <img src="https://irp.cdn-website.com/1513145c/dms3rep/multi/opt/%D7%A9%D7%9C%D7%95%D7%A9+%D7%9C%D7%95%D7%92%D7%95+%D7%90%D7%A4%D7%A7%D7%98+%D7%97%D7%93%D7%A9-300w.png" alt="" style="width:420px;opacity:0.1;user-select:none">
-  </div>
   <div style="position:relative;z-index:1">
     <div class="stats-bar" id="statsBar"></div>
     <div id="outsourceStatBar"></div>
@@ -361,6 +358,7 @@
         <h3>נתונים</h3>
         <div class="settings-row"><span>סה"כ הזמנות</span><strong id="s_total">0</strong></div>
         <div class="settings-row"><span>לא שולמו</span><strong id="s_unpaid" style="color:var(--danger)">0</strong></div>
+        <div id="s_statusCounts"></div>
         <div class="settings-row"><span style="color:var(--danger)">מחק את כל הנתונים</span><button class="btn btn-danger btn-sm" onclick="clearAll()">מחק הכל</button></div>
       </div>
     </div>
@@ -392,6 +390,21 @@
     <div style="padding:20px">
       <div id="statusAlertBody" style="font-size:17px;line-height:1.8;color:var(--text)"></div>
       <button class="btn btn-primary" onclick="document.getElementById('statusAlertModal').classList.remove('open')" style="width:100%;justify-content:center;margin-top:16px;padding:12px;font-size:17px">אישור</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="confirmModal">
+  <div class="modal" style="max-width:380px">
+    <div class="modal-header">
+      <h2>⚠️ אישור פעולה</h2>
+    </div>
+    <div style="padding:20px">
+      <div id="confirmBody" style="font-size:17px;line-height:1.8;color:var(--text)"></div>
+      <div style="display:flex;gap:10px;margin-top:16px">
+        <button class="btn btn-ghost" onclick="document.getElementById('confirmModal').classList.remove('open')" style="flex:1;justify-content:center;padding:12px;font-size:16px">ביטול</button>
+        <button class="btn btn-danger" id="confirmYesBtn" style="flex:1;justify-content:center;padding:12px;font-size:16px">כן, בטוח</button>
+      </div>
     </div>
   </div>
 </div>
@@ -543,7 +556,7 @@ const STATUSES={
   delivered:  {label:'נמסר',  color:'var(--s-delivered)',  badge:'badge-delivered'},
 };
 // גרסת האפליקציה - מתעדכנת בכל פעם שמעלים קובץ חדש, כדי לדעת בוודאות שהעדכון נטען
-const APP_VERSION='2026-09-17.8';
+const APP_VERSION='2026-09-17.10';
 
 const STATUS_ORDER=['ordered','graphic','production','ready','delivered'];
 // סטטוסים שגלויים לכולם גם בתצוגת "שלי" (לא רק המשויכות/לא-משויכות) —
@@ -1185,29 +1198,48 @@ function moveItem(orderId,itemId,newStatus){
     showStatusAlert([`🚚 העבודה עדיין בחוץ אצל ספק (${esc(o.items[itemIdx].outsourceSupplier)}) - יש לסמן "התקבל מהספק" לפני מעבר למוכן`]);
     return;
   }
-  const movedItemId=o.items[itemIdx].id;
-  o.items[itemIdx].status=newStatus;
-  if(!o.items[itemIdx].statusDates)o.items[itemIdx].statusDates={};
-  o.items[itemIdx].statusDates[newStatus]=new Date().toISOString();
-  o.updatedAt=new Date().toISOString();
-  addLog(o,`פריט "${o.items[itemIdx].type}" → ${STATUSES[newStatus].label}`);
-  saveLocal();saveOrderToDB(o);renderAll();
-  showToast(`✓ ${STATUSES[newStatus].label}`);
 
-  // תזכורת תשלום / עבודה נוספת בהזמנה - כשעוברים ל"מוכן" או "נמסר"
-  if(newStatus==='ready'||newStatus==='delivered'){
-    const lines=[];
-    if(!o.paid) lines.push('💰 שימו לב: ההזמנה הזו עדיין <b>לא שולמה</b>');
-    const others=(o.items||[]).filter(it=>it.id!==movedItemId);
-    const pendingOthers=newStatus==='ready'
-      ? others.filter(it=>it.status!=='ready'&&it.status!=='delivered')
-      : others.filter(it=>it.status!=='delivered');
-    if(pendingOthers.length){
-      const labels=[...new Set(pendingOthers.map(it=>STATUSES[it.status]?.label||it.status))];
-      lines.push(`📦 בהזמנה זו יש עוד עבודה שנמצאת ב: ${esc(labels.join(', '))}`);
+  const doMove=()=>{
+    const movedItemId=o.items[itemIdx].id;
+    o.items[itemIdx].status=newStatus;
+    if(!o.items[itemIdx].statusDates)o.items[itemIdx].statusDates={};
+    o.items[itemIdx].statusDates[newStatus]=new Date().toISOString();
+    o.updatedAt=new Date().toISOString();
+    addLog(o,`פריט "${o.items[itemIdx].type}" → ${STATUSES[newStatus].label}`);
+    saveLocal();saveOrderToDB(o);renderAll();
+    showToast(`✓ ${STATUSES[newStatus].label}`);
+
+    // תזכורת תשלום / עבודה נוספת בהזמנה - כשעוברים ל"מוכן" או "נמסר"
+    if(newStatus==='ready'||newStatus==='delivered'){
+      const lines=[];
+      if(!o.paid) lines.push('💰 שימו לב: ההזמנה הזו עדיין <b>לא שולמה</b>');
+      const others=(o.items||[]).filter(it=>it.id!==movedItemId);
+      const pendingOthers=newStatus==='ready'
+        ? others.filter(it=>it.status!=='ready'&&it.status!=='delivered')
+        : others.filter(it=>it.status!=='delivered');
+      if(pendingOthers.length){
+        const labels=[...new Set(pendingOthers.map(it=>STATUSES[it.status]?.label||it.status))];
+        lines.push(`📦 בהזמנה זו יש עוד עבודה שנמצאת ב: ${esc(labels.join(', '))}`);
+      }
+      if(lines.length) showStatusAlert(lines);
     }
-    if(lines.length) showStatusAlert(lines);
+  };
+
+  // חזרה אחורה בסטטוס - דורשת אישור לפני ביצוע
+  if(newIdx<curIdx){
+    confirmAction(`להחזיר את "${o.items[itemIdx].type}" מ${STATUSES[o.items[itemIdx].status].label} ל${STATUSES[newStatus].label}?`, doMove);
+  }else{
+    doMove();
   }
+}
+
+function confirmAction(message,onConfirm){
+  document.getElementById('confirmBody').textContent=message;
+  document.getElementById('confirmYesBtn').onclick=()=>{
+    document.getElementById('confirmModal').classList.remove('open');
+    onConfirm();
+  };
+  document.getElementById('confirmModal').classList.add('open');
 }
 
 function showStatusAlert(lines){
@@ -1220,11 +1252,23 @@ function toggleItemSubstep(orderId,itemId,field){
   const itemIdx=(o.items||[]).findIndex(x=>x.id===itemId);
   if(itemIdx===-1)return;
   const item=o.items[itemIdx];
-  if(field==='approved'&&!item.approved){item.inReview=false;item.approved=true;}
-  else if(field==='inReview'&&item.approved){item.approved=false;item.inReview=true;}
-  else item[field]=!item[field];
-  o.updatedAt=new Date().toISOString();
-  saveLocal();saveOrderToDB(o);renderAll();
+
+  const apply=()=>{
+    if(field==='approved'&&!item.approved){item.inReview=false;item.approved=true;}
+    else if(field==='inReview'&&item.approved){item.approved=false;item.inReview=true;}
+    else item[field]=!item[field];
+    o.updatedAt=new Date().toISOString();
+    saveLocal();saveOrderToDB(o);renderAll();
+  };
+
+  // אישור נדרש רק כשמבטלים (מכבים) מצב שכבר היה פעיל - לא כשמפעילים
+  let confirmMsg=null;
+  if(field==='inReview'&&item.approved) confirmMsg='לבטל את האישור ולחזור למצב הגהה?';
+  else if(field==='approved'&&item.approved) confirmMsg='לבטל את האישור?';
+  else if(field==='inReview'&&!item.approved&&item.inReview) confirmMsg='לבטל את ההגהה?';
+
+  if(confirmMsg) confirmAction(confirmMsg,apply);
+  else apply();
 }
 
 function toggleItemProdStep(orderId,itemId,step){
@@ -1461,6 +1505,13 @@ function setFormItemStatus(i,s){
     showStatusAlert([`🚚 העבודה עדיין בחוץ אצל ספק (${esc(formItems[i].outsourceSupplier)}) - יש לסמן "התקבל מהספק" לפני מעבר למוכן`]);
     return;
   }
+  if(newIdx<curIdx){
+    confirmAction(`להחזיר את "${formItems[i].type}" מ${STATUSES[formItems[i].status].label} ל${STATUSES[s].label}?`,()=>{
+      formItems[i].status=s;
+      renderItemsList();
+    });
+    return;
+  }
   formItems[i].status=s;
   renderItemsList();
 }
@@ -1587,7 +1638,16 @@ function deleteOrder(){
 // ── SETTINGS ──────────────────────────────────────────
 function openSettings(){
   document.getElementById('s_total').textContent=orders.length;
-  document.getElementById('s_unpaid').textContent=orders.filter(o=>!o.paid&&o.status!=='delivered').length;
+  document.getElementById('s_unpaid').textContent=orders.filter(o=>!o.paid&&orderStatus(o)!=='delivered').length;
+  const counts={};
+  STATUS_ORDER.forEach(s=>counts[s]=0);
+  orders.forEach(o=>{
+    const st=orderStatus(o);
+    if(counts[st]!==undefined)counts[st]++;
+  });
+  document.getElementById('s_statusCounts').innerHTML=STATUS_ORDER.map(s=>
+    `<div class="settings-row"><span>הזמנות ב${STATUSES[s].label}</span><strong style="color:${STATUSES[s].color}">${counts[s]}</strong></div>`
+  ).join('');
   document.getElementById('s_newPass').value='';
   document.getElementById('s_waMsg').value=waMsg;
   document.getElementById('settingsModal').classList.add('open');
