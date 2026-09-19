@@ -539,7 +539,7 @@ const STATUSES={
   delivered:  {label:'נמסר',  color:'var(--s-delivered)',  badge:'badge-delivered'},
 };
 // גרסת האפליקציה - מתעדכנת בכל פעם שמעלים קובץ חדש, כדי לדעת בוודאות שהעדכון נטען
-const APP_VERSION='2026-09-17.6';
+const APP_VERSION='2026-09-17.7';
 
 const STATUS_ORDER=['ordered','graphic','production','ready','delivered'];
 // סטטוסים שגלויים לכולם גם בתצוגת "שלי" (לא רק המשויכות/לא-משויכות) —
@@ -1030,6 +1030,19 @@ function cardHTML(o, showClaimBtn=false){
     const nextS=si<STATUS_ORDER.length-1?STATUS_ORDER[si+1]:null;
     const sc=STATUSES[item.status]?.color||'var(--text2)';
 
+    // עבודת חוץ - לוגיקה לפי שלב
+    const hasSupplier=!!item.outsourceSupplier;
+    const hideNextForOutsource=(item.status==='graphic'&&hasSupplier)||(item.status==='production'&&hasSupplier&&!item.outsourceReceived);
+    const outsourceOrderedBtn=item.status==='ordered'
+      ?`<button onclick="event.stopPropagation();setOutsourceSupplier('${o.id}','${item.id}')" style="padding:2px 8px;border:1px solid ${hasSupplier?'#f0ad4e':'var(--border)'};border-radius:6px;background:${hasSupplier?'#fff3cd':'none'};color:${hasSupplier?'#7a5200':'var(--text2)'};cursor:pointer;font-size:13px;font-family:'Rubik',sans-serif">🏭 ${hasSupplier?'שנה ספק':'ספק חוץ'}</button>`
+      :'';
+    const sendToSupplierBtn=(item.status==='graphic'&&hasSupplier)
+      ?`<button onclick="event.stopPropagation();${item.approved?`sendToSupplier('${o.id}','${item.id}')`:`showStatusAlert(['⚠️ יש לאשר מול הלקוח לפני שליחה לספק'])`}" style="padding:2px 8px;border:none;border-radius:6px;background:${item.approved?'#f0ad4e':'var(--border)'};color:${item.approved?'#fff':'var(--text2)'};cursor:pointer;font-size:13px;font-family:'Rubik',sans-serif;opacity:${item.approved?'1':'0.6'}">🚚 נשלח לספק</button>`
+      :'';
+    const receivedBtn=(item.status==='production'&&hasSupplier&&!item.outsourceReceived)
+      ?`<button onclick="event.stopPropagation();receiveFromSupplier('${o.id}','${item.id}')" style="padding:2px 8px;border:none;border-radius:6px;background:#5cb85c;color:#fff;cursor:pointer;font-size:13px;font-family:'Rubik',sans-serif">📥 התקבל מהספק</button>`
+      :'';
+
     return `<div style="background:var(--surface2);border:1px solid var(--border);border-right:3px solid ${sc};border-radius:8px;padding:10px">
       <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
         <span style="font-size:15px;font-weight:700">${esc(item.type)||'?'}</span>
@@ -1054,8 +1067,10 @@ function cardHTML(o, showClaimBtn=false){
           </div>
         </div>`:'<div style="margin-right:auto"></div>'}`}
           ${prevS?`<button onclick="event.stopPropagation();moveItem('${o.id}','${item.id}','${prevS}')" style="padding:2px 8px;border:1px solid var(--border);border-radius:6px;background:none;color:var(--text2);cursor:pointer;font-size:13px;font-family:'Rubik',sans-serif">← ${STATUSES[prevS].label}</button>`:''}
-          ${nextS?`<button onclick="event.stopPropagation();moveItem('${o.id}','${item.id}','${nextS}')" style="padding:2px 8px;border:none;border-radius:6px;background:${STATUSES[nextS].color};color:#fff;cursor:pointer;font-size:13px;font-family:'Rubik',sans-serif">${STATUSES[nextS].label} →</button>`:''}
-          <button onclick="event.stopPropagation();toggleOutsourced('${o.id}','${item.id}')" style="padding:2px 8px;border:1px solid ${item.outsourced?'#f0ad4e':'var(--border)'};border-radius:6px;background:${item.outsourced?'#fff3cd':'none'};color:${item.outsourced?'#7a5200':'var(--text2)'};cursor:pointer;font-size:13px;font-family:'Rubik',sans-serif">🚚 ${item.outsourced?'חזר מספק':'יצא לספק'}</button>
+          ${nextS&&!hideNextForOutsource?`<button onclick="event.stopPropagation();moveItem('${o.id}','${item.id}','${nextS}')" style="padding:2px 8px;border:none;border-radius:6px;background:${STATUSES[nextS].color};color:#fff;cursor:pointer;font-size:13px;font-family:'Rubik',sans-serif">${STATUSES[nextS].label} →</button>`:''}
+          ${outsourceOrderedBtn}
+          ${sendToSupplierBtn}
+          ${receivedBtn}
         </div>
       ${item.notes?`<div style="font-size:14px;color:var(--text2);margin-top:6px;padding:5px 8px;background:var(--surface);border-radius:6px">${esc(item.notes)}</div>`:''}
       ${graphicHTML}${stepsHTML}
@@ -1073,10 +1088,15 @@ function cardHTML(o, showClaimBtn=false){
     ?`<div style="margin-top:8px;padding:8px 12px;border-radius:8px;background:rgba(212,58,58,0.12);border:1px solid var(--danger);color:var(--danger);font-size:15px;font-weight:700;text-align:center">ℹ️ בהזמנה זו יש גם עבודה נוספת (${esc(otherStatusLabels.join(', '))})</div>`
     :'';
 
-  // באנר בולט לעבודת חוץ - כשלפחות פריט אחד המוצג בכרטיס הזה נמצא כרגע אצל ספק חיצוני
-  const outsourcedShown=(o.items||[]).filter(it=>it.outsourced);
-  const outsourceBanner=outsourcedShown.length
-    ?`<div style="margin-top:8px;padding:12px 14px;border-radius:8px;background:#fff3cd;border:2px solid #f0ad4e;color:#7a5200;font-size:18px;font-weight:800;text-align:center">🚚 בחוץ אצל ספק${outsourcedShown.some(it=>it.outsourceSupplier)?': '+esc(outsourcedShown.map(it=>it.outsourceSupplier).filter(Boolean).join(', ')):''}</div>`
+  // מידע ספק חוץ - מוצג למעלה בקוביה עבור כל פריט מוצג עם ספק מוגדר
+  const supplierItems=(o.items||[]).filter(it=>it.outsourceSupplier);
+  const outsourceInfoBox=supplierItems.length
+    ?`<div style="font-size:14px;margin-top:2px;color:#7a5200;font-weight:700">🏭 ${supplierItems.map(it=>{
+        let txt=esc(it.outsourceSupplier);
+        if(it.outsourceSentAt)txt+=` — נשלח: ${formatDateTime(it.outsourceSentAt)}`;
+        if(it.outsourceReceived)txt+=' ✓ התקבל';
+        return txt;
+      }).join(' | ')}</div>`
     :'';
 
   const pickupField=allItemsDone
@@ -1092,6 +1112,7 @@ function cardHTML(o, showClaimBtn=false){
         <div style="font-size:19px;font-weight:700">${o.urgent?'🚨 ':''}${esc(o.customer)}</div>
         ${o.orderNum?`<div style="font-size:14px;color:var(--text2);margin-top:2px">${esc(o.orderNum)}</div>`:''}
         <div style="font-size:14px;font-weight:700;color:var(--accent);margin-top:2px">📅 ${formatDate(fullOrder.createdAt)}</div>
+        ${outsourceInfoBox}
         ${o.phone?`<div style="font-size:15px;margin-top:2px;color:var(--accent)">📞 ${esc(o.phone)}</div>`:''}
       </div>
       <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">
@@ -1105,7 +1126,6 @@ function cardHTML(o, showClaimBtn=false){
       ${itemsHTML}
     </div>
     ${crossItemNote}
-    ${outsourceBanner}
     ${pickupField}
     ${waBtn}
   </div>`;
@@ -1126,8 +1146,8 @@ function moveItem(orderId,itemId,newStatus){
     showStatusAlert(['⚠️ יש לשייך את העבודה למישהו לפני מעבר לגרפיקה']);
     return;
   }
-  if(newStatus==='ready'&&newIdx>curIdx&&o.items[itemIdx].outsourced){
-    showStatusAlert([`🚚 העבודה עדיין בחוץ אצל ספק (${esc(o.items[itemIdx].outsourceSupplier||'לא צוין')}) - לא ניתן לסמן כמוכן לפני שהיא חוזרת`]);
+  if(newStatus==='ready'&&newIdx>curIdx&&o.items[itemIdx].outsourceSupplier&&!o.items[itemIdx].outsourceReceived){
+    showStatusAlert([`🚚 העבודה עדיין בחוץ אצל ספק (${esc(o.items[itemIdx].outsourceSupplier)}) - יש לסמן "התקבל מהספק" לפני מעבר למוכן`]);
     return;
   }
   const movedItemId=o.items[itemIdx].id;
@@ -1258,28 +1278,51 @@ function toggleFrozen(orderId){
   showToast(o.frozen?'❄️ ההזמנה הוקפאה':'🔥 ההקפאה בוטלה');
 }
 
-function toggleOutsourced(orderId,itemId){
+// ── עבודת חוץ (ספק חיצוני) ──────────────────────────────
+// שלב 1 (בסטטוס "הוזמן"): מגדירים שם ספק
+function setOutsourceSupplier(orderId,itemId){
   const o=orders.find(x=>x.id===orderId);if(!o)return;
-  const idx=(o.items||[]).findIndex(x=>x.id===itemId);
-  if(idx===-1)return;
+  const idx=(o.items||[]).findIndex(x=>x.id===itemId);if(idx===-1)return;
   const item=o.items[idx];
-  if(!item.outsourced){
-    const supplier=prompt('שם הספק החיצוני:','');
-    if(supplier===null)return; // בוטל
-    item.outsourced=true;
-    item.outsourceSupplier=supplier.trim();
-    item.outsourceSentAt=new Date().toISOString();
-    addLog(o,`שלח "${item.type}" לספק חוץ${item.outsourceSupplier?': '+item.outsourceSupplier:''}`);
-    showToast('🚚 סומן כיצא לספק חוץ');
-  }else{
-    addLog(o,`"${item.type}" חזר מספק חוץ${item.outsourceSupplier?' ('+item.outsourceSupplier+')':''}`);
-    item.outsourced=false;
-    item.outsourceSupplier='';
-    item.outsourceSentAt=null;
-    showToast('✓ סומן כחזר מהספק');
-  }
+  const supplier=prompt('שם הספק החיצוני:',item.outsourceSupplier||'');
+  if(supplier===null)return;
+  item.outsourceSupplier=supplier.trim();
   o.updatedAt=new Date().toISOString();
+  addLog(o,item.outsourceSupplier?`הגדיר ספק חוץ ל"${item.type}": ${item.outsourceSupplier}`:`הסיר ספק חוץ מ"${item.type}"`);
   saveLocal();saveOrderToDB(o);renderAll();
+  showToast(item.outsourceSupplier?'🏭 ספק חוץ הוגדר':'✓ ספק הוסר');
+}
+
+// שלב 2 (בסטטוס "גרפיקה", רק אחרי אישור לקוח): שליחה בפועל לספק - מעביר ישירות לייצור
+function sendToSupplier(orderId,itemId){
+  const o=orders.find(x=>x.id===orderId);if(!o)return;
+  const idx=(o.items||[]).findIndex(x=>x.id===itemId);if(idx===-1)return;
+  const item=o.items[idx];
+  if(!item.approved){
+    showStatusAlert(['⚠️ יש לאשר מול הלקוח לפני שליחה לספק']);
+    return;
+  }
+  item.outsourceSentAt=new Date().toISOString();
+  item.status='production';
+  if(!item.statusDates)item.statusDates={};
+  item.statusDates.production=item.outsourceSentAt;
+  o.updatedAt=new Date().toISOString();
+  addLog(o,`"${item.type}" נשלח לספק (${item.outsourceSupplier}) → ייצור`);
+  saveLocal();saveOrderToDB(o);renderAll();
+  showToast('🚚 נשלח לספק');
+}
+
+// שלב 3 (בסטטוס "ייצור"): סימון שהעבודה חזרה מהספק - רק אז אפשר להעביר למוכן
+function receiveFromSupplier(orderId,itemId){
+  const o=orders.find(x=>x.id===orderId);if(!o)return;
+  const idx=(o.items||[]).findIndex(x=>x.id===itemId);if(idx===-1)return;
+  const item=o.items[idx];
+  item.outsourceReceived=true;
+  item.outsourceReceivedAt=new Date().toISOString();
+  o.updatedAt=new Date().toISOString();
+  addLog(o,`"${item.type}" התקבל מהספק (${item.outsourceSupplier})`);
+  saveLocal();saveOrderToDB(o);renderAll();
+  showToast('📥 התקבל מהספק');
 }
 
 function savePickupInfo(orderId,text){
@@ -1379,8 +1422,8 @@ function setFormItemStatus(i,s){
     showStatusAlert(['⚠️ יש לשייך את העבודה למישהו לפני מעבר לגרפיקה']);
     return;
   }
-  if(s==='ready'&&newIdx>curIdx&&formItems[i].outsourced){
-    showStatusAlert([`🚚 העבודה עדיין בחוץ אצל ספק (${esc(formItems[i].outsourceSupplier||'לא צוין')}) - לא ניתן לסמן כמוכן לפני שהיא חוזרת`]);
+  if(s==='ready'&&newIdx>curIdx&&formItems[i].outsourceSupplier&&!formItems[i].outsourceReceived){
+    showStatusAlert([`🚚 העבודה עדיין בחוץ אצל ספק (${esc(formItems[i].outsourceSupplier)}) - יש לסמן "התקבל מהספק" לפני מעבר למוכן`]);
     return;
   }
   formItems[i].status=s;
