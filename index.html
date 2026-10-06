@@ -529,6 +529,8 @@ const PROD_STEPS={
   'שחור לבן':['הודפס','דבק','סיכות','בחיתוך','באריזה'],
   'פלוטר':   ['הודפס','בחיתוך','הודבק'],
   'לייזר':   ['בחיתוך','בהדבקה'],
+  'חיתוך A3':['הודפס','בחיתוך','הודבק'],
+  'פלוטר חותך':['הודפס','בחיתוך','הודבק'],
 };
 
 // ── STATE ─────────────────────────────────────────────
@@ -556,7 +558,7 @@ const STATUSES={
   delivered:  {label:'נמסר',  color:'var(--s-delivered)',  badge:'badge-delivered'},
 };
 // גרסת האפליקציה - מתעדכנת בכל פעם שמעלים קובץ חדש, כדי לדעת בוודאות שהעדכון נטען
-const APP_VERSION='2026-09-17.10';
+const APP_VERSION='2026-09-17.12';
 
 const STATUS_ORDER=['ordered','graphic','production','ready','delivered'];
 // סטטוסים שגלויים לכולם גם בתצוגת "שלי" (לא רק המשויכות/לא-משויכות) —
@@ -604,6 +606,7 @@ function fromDB(r){
     urgent:!!r.urgent, paid:!!r.paid,
     log:r.log||[], waSentAt:r.wa_sent_at||null,
     pickupInfo:r.pickup_info||'',
+    produced:!!r.produced,
     frozen:!!r.frozen,
     createdAt:r.created_at, updatedAt:r.updated_at,
     _idsFixed:idsFixed
@@ -634,6 +637,7 @@ function toDB(o){
     status_dates:firstItem.statusDates||{},
     log:o.log||[], wa_sent_at:o.waSentAt||null,
     pickup_info:o.pickupInfo||null,
+    produced:!!o.produced,
     frozen:!!o.frozen,
     items:o.items||[],
     created_at:o.createdAt, updated_at:o.updatedAt
@@ -1023,6 +1027,7 @@ function cardHTML(o, showClaimBtn=false){
   const otherItems=fullItems.filter(it=>!shownItemIds.has(it.id));
 
   const paidBadge=`<div class="paid-badge" style="${o.paid?'background:rgba(16,185,129,0.2);color:var(--s-delivered);border:1px solid rgba(16,185,129,0.4)':'background:rgba(239,68,68,0.15);color:var(--danger);border:1px solid rgba(239,68,68,0.3)'}" onclick="event.stopPropagation();togglePaid('${o.id}')">${o.paid?'✓ שולם':'✗ לא שולם'}</div>`;
+  const producedBadge=`<div class="paid-badge" style="${o.produced?'background:#2ecc71;color:#fff;border:1px solid #2ecc71':'background:var(--surface2);color:var(--text2);border:1px solid var(--border)'}" onclick="event.stopPropagation();toggleProduced('${o.id}')">הופקה הזמנה</div>`;
 
   // כפתור הקפאה - מוצג רק בכרטיס שמציג פריט/ים בסטטוס "הוזמן"
   const showFreezeBtn=(o.items||[]).some(it=>it.status==='ordered');
@@ -1165,6 +1170,7 @@ function cardHTML(o, showClaimBtn=false){
       </div>
       <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">
         ${paidBadge}
+        ${producedBadge}
         ${freezeBtn}
         ${assigneeDropdown}
       </div>
@@ -1346,6 +1352,14 @@ function togglePaid(id){
   addLog(o,o.paid?'סימן כשולם':'סימן כלא שולם');
   saveLocal();saveOrderToDB(o);renderAll();
   showToast(o.paid?'✅ סומן כשולם':'✗ סומן כלא שולם');
+}
+
+function toggleProduced(id){
+  const o=orders.find(x=>x.id===id);if(!o)return;
+  o.produced=!o.produced;o.updatedAt=new Date().toISOString();
+  addLog(o,o.produced?'סימן כהופקה':'סימן כלא הופקה');
+  saveLocal();saveOrderToDB(o);renderAll();
+  showToast(o.produced?'✅ סומן כהופקה':'✗ סומן כלא הופקה');
 }
 
 function toggleFrozen(orderId){
@@ -1613,6 +1627,7 @@ function saveOrder(){
     order.waSentAt=prev.waSentAt||null;
     order.frozen=prev.frozen||false;
     order.pickupInfo=prev.pickupInfo||'';
+    order.produced=prev.produced||false;
     if(prev.assignee!==order.assignee)addLog(order,`שינה מבצע מ"${prev.assignee||'לא משויך'}" ל"${order.assignee||'לא משויך'}"`);
     addLog(order,'ערך הזמנה');
     orders[idx]=order;
