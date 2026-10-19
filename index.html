@@ -558,7 +558,7 @@ const STATUSES={
   delivered:  {label:'נמסר',  color:'var(--s-delivered)',  badge:'badge-delivered'},
 };
 // גרסת האפליקציה - מתעדכנת בכל פעם שמעלים קובץ חדש, כדי לדעת בוודאות שהעדכון נטען
-const APP_VERSION='2026-09-17.12';
+const APP_VERSION='2026-10-19.2';
 
 const STATUS_ORDER=['ordered','graphic','production','ready','delivered'];
 // סטטוסים שגלויים לכולם גם בתצוגת "שלי" (לא רק המשויכות/לא-משויכות) —
@@ -789,7 +789,8 @@ function getFiltered(){
   return orders.filter(o=>{
     const types=(o.items||[]).map(i=>i.type).join(' ').toLowerCase();
     const mq=!q||o.customer.toLowerCase().includes(q)||(o.orderNum||'').toLowerCase().includes(q)||types.includes(q)||(o.notes||'').toLowerCase().includes(q);
-    const matchType=!activeTypeFilter||(o.items||[]).some(i=>i.type===activeTypeFilter);
+    // "עבודות חוץ" הוא סינון לפי ספק חוץ מוגדר, לא לפי סוג עבודה
+    const matchType=!activeTypeFilter||(o.items||[]).some(i=>activeTypeFilter==='עבודות חוץ'?!!i.outsourceSupplier:i.type===activeTypeFilter);
     return mq&&matchType;
   });
 }
@@ -1086,8 +1087,11 @@ function cardHTML(o, showClaimBtn=false){
     // עבודת חוץ - לוגיקה לפי שלב
     const hasSupplier=!!item.outsourceSupplier;
     const hideNextForOutsource=(item.status==='graphic'&&hasSupplier)||(item.status==='production'&&hasSupplier&&!item.outsourceReceived);
-    const outsourceOrderedBtn=item.status==='ordered'
+    const outsourceOrderedBtn=(item.status==='ordered'||item.status==='graphic')
       ?`<button onclick="event.stopPropagation();setOutsourceSupplier('${o.id}','${item.id}')" style="padding:2px 8px;border:1px solid ${hasSupplier?'#f0ad4e':'var(--border)'};border-radius:6px;background:${hasSupplier?'#fff3cd':'none'};color:${hasSupplier?'#7a5200':'var(--text2)'};cursor:pointer;font-size:13px;font-family:'Rubik',sans-serif">🏭 ${hasSupplier?'שנה ספק':'ספק חוץ'}</button>`
+      :'';
+    const skipGraphicBtn=item.status==='ordered'
+      ?`<button onclick="event.stopPropagation();skipGraphic('${o.id}','${item.id}')" style="padding:2px 8px;border:1px solid ${STATUSES.production.color};border-radius:6px;background:none;color:${STATUSES.production.color};cursor:pointer;font-size:13px;font-family:'Rubik',sans-serif">⏩ ${hasSupplier?'ישר לספק':'ישר לייצור'}</button>`
       :'';
     const sendToSupplierBtn=(item.status==='graphic'&&hasSupplier)
       ?`<button onclick="event.stopPropagation();${item.approved?`sendToSupplier('${o.id}','${item.id}')`:`showStatusAlert(['⚠️ יש לאשר מול הלקוח לפני שליחה לספק'])`}" style="padding:2px 8px;border:none;border-radius:6px;background:${item.approved?'#f0ad4e':'var(--border)'};color:${item.approved?'#fff':'var(--text2)'};cursor:pointer;font-size:13px;font-family:'Rubik',sans-serif;opacity:${item.approved?'1':'0.6'}">🚚 נשלח לספק</button>`
@@ -1121,6 +1125,7 @@ function cardHTML(o, showClaimBtn=false){
         </div>`:'<div style="margin-right:auto"></div>'}`}
           ${prevS?`<button onclick="event.stopPropagation();moveItem('${o.id}','${item.id}','${prevS}')" style="padding:2px 8px;border:1px solid var(--border);border-radius:6px;background:none;color:var(--text2);cursor:pointer;font-size:13px;font-family:'Rubik',sans-serif">← ${STATUSES[prevS].label}</button>`:''}
           ${nextS&&!hideNextForOutsource?`<button onclick="event.stopPropagation();moveItem('${o.id}','${item.id}','${nextS}')" style="padding:2px 8px;border:none;border-radius:6px;background:${STATUSES[nextS].color};color:#fff;cursor:pointer;font-size:13px;font-family:'Rubik',sans-serif">${STATUSES[nextS].label} →</button>`:''}
+          ${skipGraphicBtn}
           ${outsourceOrderedBtn}
           ${sendToSupplierBtn}
           ${receivedBtn}
@@ -1137,6 +1142,22 @@ function cardHTML(o, showClaimBtn=false){
       </button>`:'';
 
   const otherStatusLabels=otherItems.map(it=>STATUSES[it.status]?.label||it.status);
+  // "העבר את כולם" - רק כשיש 2+ פריטים, כולם באותו סטטוס, והכרטיס מציג את כולם
+  const sameStatusAll=fullItems.length>=2&&fullItems.every(it=>it.status===fullItems[0].status)&&(o.items||[]).length===fullItems.length;
+  let moveAllControl='';
+  if(sameStatusAll){
+    const curS=fullItems[0].status;
+    const curI=STATUS_ORDER.indexOf(curS);
+    const nextS=STATUS_ORDER[curI+1];
+    const options=STATUS_ORDER.filter(s=>s!==curS).sort((a,b)=>(a===nextS?-1:b===nextS?1:0));
+    moveAllControl=`<div onclick="event.stopPropagation()" style="margin-top:8px">
+      <select onchange="if(this.value){moveAllItems('${o.id}',this.value);this.value=''}" style="width:100%;padding:9px 10px;border-radius:8px;border:2px solid var(--accent);background:var(--surface);color:var(--text);font-family:'Rubik',sans-serif;font-size:15px;font-weight:700;cursor:pointer">
+        <option value="">⏩ העבר את כל העבודות ל...</option>
+        ${options.map(s=>`<option value="${s}">${s===nextS?'→ ':''}${STATUSES[s].label}${s===nextS?' (הבא)':''}</option>`).join('')}
+      </select>
+    </div>`;
+  }
+
   const crossItemNote=(otherItems.length>0)
     ?`<div style="margin-top:8px;padding:8px 12px;border-radius:8px;background:rgba(212,58,58,0.12);border:1px solid var(--danger);color:var(--danger);font-size:15px;font-weight:700;text-align:center">ℹ️ בהזמנה זו יש גם עבודה נוספת (${esc(otherStatusLabels.join(', '))})</div>`
     :'';
@@ -1179,6 +1200,7 @@ function cardHTML(o, showClaimBtn=false){
     <div style="display:flex;flex-direction:column;gap:8px;border-top:1px solid var(--border);padding-top:10px;margin-top:2px">
       ${itemsHTML}
     </div>
+    ${moveAllControl}
     ${crossItemNote}
     ${pickupField}
     ${waBtn}
@@ -1387,6 +1409,98 @@ function setOutsourceSupplier(orderId,itemId){
 }
 
 // שלב 2 (בסטטוס "גרפיקה", רק אחרי אישור לקוח): שליחה בפועל לספק - מעביר ישירות לייצור
+// דילוג על גרפיקה (עבודות חוזרות): מוזמן → ייצור ישירות. דורש שיוך ואישור פעולה.
+// פריט עם ספק חוץ נשלח ישר לספק (עם תאריך ושעה) ואז ממשיך ל"התקבל מהספק" כרגיל.
+function skipGraphic(orderId,itemId){
+  const o=orders.find(x=>x.id===orderId);if(!o)return;
+  const item=(o.items||[]).find(x=>x.id===itemId);
+  if(!item||item.status!=='ordered')return;
+  if(!item.assignee){
+    showStatusAlert(['⚠️ יש לשייך את העבודה למישהו לפני דילוג על גרפיקה']);
+    return;
+  }
+  const hasSupplier=!!item.outsourceSupplier;
+  const msg=hasSupplier
+    ?`לשלוח את "${item.type}" ישר לספק (${item.outsourceSupplier}) בלי לעבור בגרפיקה?`
+    :`להעביר את "${item.type}" ישר לייצור בלי לעבור בגרפיקה?`;
+  confirmAction(msg,()=>{
+    const now=new Date().toISOString();
+    item.status='production';
+    item.approved=true;
+    item.inReview=false;
+    if(!item.statusDates)item.statusDates={};
+    item.statusDates.production=now;
+    if(hasSupplier)item.outsourceSentAt=now;
+    o.updatedAt=now;
+    addLog(o,hasSupplier
+      ?`"${item.type}" נשלח ישר לספק (${item.outsourceSupplier}) – דולג על גרפיקה → ייצור`
+      :`"${item.type}" → ייצור – דולג על גרפיקה`);
+    saveLocal();saveOrderToDB(o);renderAll();
+    showToast(hasSupplier?'🚚 נשלח ישר לספק':'⏩ הועבר ישר לייצור');
+  });
+}
+
+// העברת כל העבודות בהזמנה ביחד. הכול או כלום: אם פריט אחד לא עומד בכלל - שום דבר לא זז.
+function moveAllItems(orderId,newStatus){
+  const o=orders.find(x=>x.id===orderId);if(!o)return;
+  const items=o.items||[];
+  if(items.length<2)return;
+  const curStatus=items[0].status;
+  if(!items.every(it=>it.status===curStatus)||curStatus===newStatus)return;
+  const curIdx=STATUS_ORDER.indexOf(curStatus);
+  const newIdx=STATUS_ORDER.indexOf(newStatus);
+  const forward=newIdx>curIdx;
+
+  const problems=[];
+  if(forward){
+    const gIdx=STATUS_ORDER.indexOf('graphic');
+    const pIdx=STATUS_ORDER.indexOf('production');
+    const rIdx=STATUS_ORDER.indexOf('ready');
+    items.forEach(it=>{
+      const name=`"${esc(it.type||'עבודה')}"`;
+      const sup=!!it.outsourceSupplier;
+      if(curIdx<gIdx&&newIdx>=gIdx&&!it.assignee)
+        problems.push(`${name}: לא משויכת – יש לשייך לפני המעבר`);
+      if(sup&&curIdx<pIdx&&newIdx>=pIdx)
+        problems.push(`${name}: עבודת חוץ (${esc(it.outsourceSupplier)}) – יש להעביר אותה דרך "נשלח לספק" / "ישר לספק"`);
+      else if(curStatus==='graphic'&&newIdx>=pIdx&&!it.approved)
+        problems.push(`${name}: חסר אישור לקוח`);
+      if(sup&&curIdx<rIdx&&newIdx>=rIdx&&!it.outsourceReceived)
+        problems.push(`${name}: עדיין אצל הספק (${esc(it.outsourceSupplier)}) – יש לסמן "התקבל מהספק"`);
+    });
+  }
+  if(problems.length){
+    showStatusAlert(['⚠️ אי אפשר להעביר את כולם – שום דבר לא הועבר:',...problems.map(p=>'• '+p)]);
+    return;
+  }
+
+  const apply=()=>{
+    const now=new Date().toISOString();
+    const skippingGraphic=curStatus==='ordered'&&newIdx>=STATUS_ORDER.indexOf('production');
+    items.forEach(it=>{
+      it.status=newStatus;
+      if(!it.statusDates)it.statusDates={};
+      it.statusDates[newStatus]=now;
+      if(skippingGraphic){it.approved=true;it.inReview=false;}
+    });
+    o.updatedAt=now;
+    addLog(o,`העביר את כל העבודות (${items.length}) מ${STATUSES[curStatus].label} ל${STATUSES[newStatus].label}${skippingGraphic?' – דולג על גרפיקה':''}`);
+    saveLocal();saveOrderToDB(o);renderAll();
+    showToast(`✓ כל העבודות הועברו ל${STATUSES[newStatus].label}`);
+    if((newStatus==='ready'||newStatus==='delivered')&&!o.paid){
+      showStatusAlert(['💰 שימו לב: ההזמנה הזו עדיין <b>לא שולמה</b>']);
+    }
+  };
+
+  if(!forward){
+    confirmAction(`להחזיר את כל העבודות בהזמנה מ${STATUSES[curStatus].label} ל${STATUSES[newStatus].label}?`,apply);
+  }else if(curStatus==='ordered'&&newIdx>=STATUS_ORDER.indexOf('production')){
+    confirmAction(`להעביר את כל העבודות ישר ל${STATUSES[newStatus].label} בלי לעבור בגרפיקה?`,apply);
+  }else{
+    apply();
+  }
+}
+
 function sendToSupplier(orderId,itemId){
   const o=orders.find(x=>x.id===orderId);if(!o)return;
   const idx=(o.items||[]).findIndex(x=>x.id===itemId);if(idx===-1)return;
@@ -1484,12 +1598,12 @@ function renderItemsList(){
       <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">
         <select onchange="formItems[${i}].type=this.value;renderItemsList()" style="flex:2;background:var(--surface);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:7px 10px;font-family:'Rubik',sans-serif;font-size:15px">
           <option value="">בחר סוג...</option>
-          ${['צבעוני','שחור לבן','פלוטר','לייזר','גרפיקה','עבודות חוץ','חיתוך A3','פלוטר חותך'].map(t=>`<option${item.type===t?' selected':''}>${t}</option>`).join('')}
+          ${['צבעוני','שחור לבן','פלוטר','לייזר','גרפיקה','חיתוך A3','פלוטר חותך'].map(t=>`<option${item.type===t?' selected':''}>${t}</option>`).join('')}
         </select>
-        <input type="text" value="${esc(item.qty||'')}" onchange="formItems[${i}].qty=this.value" placeholder="כמות" style="flex:1;background:var(--surface);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:7px 10px;font-family:'Rubik',sans-serif;font-size:15px">
+        <input type="text" value="${esc(item.qty||'')}" oninput="formItems[${i}].qty=this.value" placeholder="כמות" style="flex:1;background:var(--surface);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:7px 10px;font-family:'Rubik',sans-serif;font-size:15px">
         ${formItems.length>1?`<button onclick="removeItem(${i})" style="border:none;background:none;color:var(--danger);cursor:pointer;font-size:18px;padding:4px">✕</button>`:''}
       </div>
-      <textarea onchange="formItems[${i}].notes=this.value" placeholder="הערות לעבודה זו..." style="width:100%;margin-top:6px;background:var(--surface);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:7px 10px;font-family:'Rubik',sans-serif;font-size:15px;resize:none;height:52px;direction:rtl">${esc(item.notes||'')}</textarea>
+      <textarea oninput="formItems[${i}].notes=this.value" placeholder="הערות לעבודה זו..." style="width:100%;margin-top:6px;background:var(--surface);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:7px 10px;font-family:'Rubik',sans-serif;font-size:15px;resize:none;height:52px;direction:rtl">${esc(item.notes||'')}</textarea>
       <div style="display:flex;gap:6px;flex-wrap:wrap">
         ${editingId?STATUS_ORDER.map(s=>`
           <button onclick="setFormItemStatus(${i},'${s}')" style="padding:4px 10px;border-radius:6px;border:1px solid ${item.status===s?STATUSES[s].color:'var(--border)'};background:${item.status===s?'rgba(0,0,0,0.06)':'none'};color:${item.status===s?STATUSES[s].color:'var(--text2)'};font-family:'Rubik',sans-serif;font-size:14px;font-weight:${item.status===s?'700':'400'};cursor:pointer">
